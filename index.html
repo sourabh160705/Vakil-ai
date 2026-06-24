@@ -86,13 +86,17 @@
     .dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-6px);opacity:1} }
     .input-area { padding: 14px 20px 18px; border-top: 1px solid #1e2a3a; background: #0d1117; }
-    .api-key-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .api-key-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
     .api-key-label { font-size: 11px; color: #5a6a7a; white-space: nowrap; }
     .api-key-input { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
     .api-key-input:focus { border-color: #b8860b44; }
     .api-key-input::placeholder { color: #3a4a5a; }
-    .api-key-hint { font-size: 10px; color: #4a5a6a; margin-top: 4px; margin-bottom: 8px; }
-    .api-key-hint a { color: #b8860b; text-decoration: none; }
+    .api-hint { font-size: 10px; color: #4a5a6a; margin-bottom: 8px; }
+    .api-hint a { color: #b8860b; text-decoration: none; }
+    .model-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .model-label { font-size: 11px; color: #5a6a7a; white-space: nowrap; }
+    .model-select { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
+    .model-select:focus { border-color: #b8860b44; }
     .input-row { display: flex; gap: 8px; align-items: flex-end; }
     .input-box { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; padding: 11px 14px; border-radius: 8px; font-size: 13.5px; font-family: 'Inter', sans-serif; resize: none; outline: none; line-height: 1.5; max-height: 120px; transition: border-color 0.15s; }
     .input-box:focus { border-color: #b8860b55; }
@@ -126,10 +130,17 @@ STRICT RULES:
 1. NEVER hallucinate section numbers or case citations. If unsure, say "Please verify on SCC Online / Manupatra."
 2. Always cite real sections: e.g., "Section 420 IPC", "Article 21 of the Constitution"
 3. Write in a warm, clear, human tone — like a senior advocate explaining to a junior
-4. Structure answers with: Legal Position → Relevant Sections → Key Cases (if applicable) → Practical Advice
+4. Structure answers with: Legal Position → Relevant Sections → Key Cases → Practical Advice
 5. If the question is in Hindi or Hinglish, respond in Hinglish
-6. Always end with a "⚠️ Verify on:" recommendation
-7. If an image is provided, analyze it — it may be a legal document, FIR, notice, or contract.`;
+6. Always end with a "⚠️ Verify on:" recommendation pointing to SCC Online, Manupatra, or Indian Kanoon`;
+
+const FREE_MODELS = [
+  { id: "deepseek/deepseek-chat-v3-0324:free",     label: "DeepSeek V3 (Free) ⭐" },
+  { id: "meta-llama/llama-4-maverick:free",         label: "Llama 4 Maverick (Free)" },
+  { id: "google/gemma-3-27b-it:free",               label: "Gemma 3 27B (Free)" },
+  { id: "mistralai/mistral-7b-instruct:free",       label: "Mistral 7B (Free)" },
+  { id: "qwen/qwen3-235b-a22b:free",                label: "Qwen3 235B (Free)" },
+];
 
 const TABS = [
   { id: "research", label: "⚖️ Research", icon: "⚖️", desc: "Ask any legal question" },
@@ -146,8 +157,8 @@ const QUICK_PROMPTS = {
 };
 
 const SOURCES = [
-  { name: "SCC Online", url: "https://www.scconline.com" },
-  { name: "Manupatra",  url: "https://www.manupatrafast.com" },
+  { name: "SCC Online",    url: "https://www.scconline.com" },
+  { name: "Manupatra",     url: "https://www.manupatrafast.com" },
   { name: "Indian Kanoon", url: "https://indiankanoon.org", note: "FREE" },
 ];
 
@@ -161,7 +172,8 @@ function timeAgo(ts) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("research");
-  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_gemini_key") || "");
+  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_or_key") || "");
+  const [model,     setModel]     = useState(() => localStorage.getItem("vakil_or_model") || FREE_MODELS[0].id);
   const [messages,  setMessages]  = useState({ research:[], analyze:[], draft:[], explain:[] });
   const [input,     setInput]     = useState("");
   const [loading,   setLoading]   = useState(false);
@@ -176,7 +188,8 @@ function App() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, loading]);
 
-  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_gemini_key", val); }
+  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_or_key", val); }
+  function saveModel(val)  { setModel(val);  localStorage.setItem("vakil_or_model", val); }
 
   function pushHistory(q, tab) {
     const entry = { id: Date.now(), question: q.slice(0,120), tab, ts: Date.now() };
@@ -196,7 +209,7 @@ function App() {
   async function sendMessage(overrideInput) {
     const userText = (overrideInput || input).trim();
     if (!userText && !imageData) return;
-    if (!apiKey.trim()) { alert("Please enter your Gemini API key. Get it free from aistudio.google.com"); return; }
+    if (!apiKey.trim()) { alert("Please enter your OpenRouter API key.\nGet free key at: openrouter.ai"); return; }
 
     const display = userText || "📷 Analyzing image...";
     pushHistory(display, activeTab);
@@ -205,54 +218,48 @@ function App() {
       ? `[DOCUMENT TO ANALYZE]\n${pastedDoc}\n\n[USER QUESTION]\n${userText}`
       : `[MODE: ${activeTab.toUpperCase()}]\n${userText || "Analyze this legal document/image."}`;
 
-    const newMsg  = { role: "user", content: display, imgPreview: imageData?.previewUrl };
+    // Build content for this message
+    let userContent;
+    if (imageData) {
+      userContent = [
+        { type: "image_url", image_url: { url: `data:${imageData.mediaType};base64,${imageData.base64}` } },
+        { type: "text", text: contextText }
+      ];
+    } else {
+      userContent = contextText;
+    }
+
+    const newMsg  = { role: "user", content: display, rawContent: userContent, imgPreview: imageData?.previewUrl };
     const updated = [...cur, newMsg];
     setMessages(prev => ({ ...prev, [activeTab]: updated }));
     setInput(""); setImageData(null); setLoading(true);
     if (taRef.current) taRef.current.style.height = "auto";
 
     try {
-      // Build Gemini contents array from history
-      const contents = updated.map((m, idx) => {
-        if (m.role === "user") {
-          // Last user message — may have image
-          if (idx === updated.length - 1 && imageData) {
-            return {
-              role: "user",
-              parts: [
-                { inline_data: { mime_type: imageData.mediaType, data: imageData.base64 } },
-                { text: contextText }
-              ]
-            };
-          }
-          return { role: "user", parts: [{ text: m.rawText || m.content }] };
-        } else {
-          return { role: "model", parts: [{ text: m.content }] };
-        }
+      const apiMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...updated.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.rawContent || m.content }))
+      ];
+
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey.trim()}`,
+          "HTTP-Referer": window.location.href,
+          "X-Title": "VakilAI"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: apiMessages,
+          max_tokens: 1500,
+          temperature: 0.3,
+        }),
       });
 
-      // Fix last user message text
-      contents[contents.length - 1] = imageData
-        ? { role: "user", parts: [{ inline_data: { mime_type: imageData.mediaType, data: imageData.base64 } }, { text: contextText }] }
-        : { role: "user", parts: [{ text: contextText }] };
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents,
-            generationConfig: { maxOutputTokens: 1500, temperature: 0.3 }
-          }),
-        }
-      );
-
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
-
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      const text = data.choices?.[0]?.message?.content || "No response received.";
       setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: text }] }));
     } catch(e) {
       setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: `⚠️ Error: ${e.message}` }] }));
@@ -274,7 +281,7 @@ function App() {
       if (line.startsWith("## "))  return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/##\s*/,"")} });
       if (line.startsWith("### ")) return React.createElement("span", { key:i, className:"msg-heading",    dangerouslySetInnerHTML:{__html:f.replace(/###\s*/,"")} });
       if (line.startsWith("# "))   return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/#\s*/,"")} });
-      if (line.startsWith("- ") || line.startsWith("• ") || line.match(/^\d+\./)) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"").replace(/^\d+\.\s*/,"")} });
+      if (line.startsWith("- ") || line.startsWith("• ") || /^\d+\./.test(line)) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"").replace(/^\d+\.\s*/,"")} });
       if (line.trim()==="") return React.createElement("br", { key:i });
       return React.createElement("p", { key:i, dangerouslySetInnerHTML:{__html:f} });
     });
@@ -348,7 +355,7 @@ function App() {
                 React.createElement("div", { className:"empty-title" },
                   activeTab==="research"?"Ask any Indian legal question":activeTab==="analyze"?"Analyze a judgment or document":activeTab==="draft"?"Draft legal documents":"Get concepts explained clearly"
                 ),
-                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + " — powered by Gemini AI, free to use."),
+                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + " — free AI models via OpenRouter."),
                 React.createElement("div", { className:"quick-prompts" },
                   QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
                 )
@@ -379,12 +386,18 @@ function App() {
         // INPUT
         React.createElement("div", { className:"input-area" },
           React.createElement("div", { className:"api-key-row" },
-            React.createElement("span", { className:"api-key-label" }, "🔑 Gemini Key:"),
-            React.createElement("input", { className:"api-key-input", type:"password", placeholder:"AIza... (free from aistudio.google.com)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
+            React.createElement("span", { className:"api-key-label" }, "🔑 OpenRouter Key:"),
+            React.createElement("input", { className:"api-key-input", type:"password", placeholder:"sk-or-... (free from openrouter.ai)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
           ),
-          React.createElement("div", { className:"api-key-hint" },
-            "Free API key: ",
-            React.createElement("a", { href:"https://aistudio.google.com/apikey", target:"_blank" }, "aistudio.google.com/apikey")
+          React.createElement("div", { className:"api-hint" },
+            "Free key: ",
+            React.createElement("a", { href:"https://openrouter.ai/keys", target:"_blank" }, "openrouter.ai/keys")
+          ),
+          React.createElement("div", { className:"model-row" },
+            React.createElement("span", { className:"model-label" }, "🤖 Model:"),
+            React.createElement("select", { className:"model-select", value:model, onChange:e=>saveModel(e.target.value) },
+              FREE_MODELS.map(m => React.createElement("option", { key:m.id, value:m.id }, m.label))
+            )
           ),
           React.createElement("div", { className:"input-row" },
             React.createElement("button", { className:`upload-btn${imageData?" has-img":""}`, onClick:()=>fileRef.current?.click(), title:"Upload image" }, "📎"),
