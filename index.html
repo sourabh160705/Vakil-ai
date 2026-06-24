@@ -9,7 +9,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0d1117; color: #e6d9c0; font-family: 'Inter', sans-serif; min-height: 100vh; }
     .app { display: flex; flex-direction: column; height: 100vh; max-width: 900px; margin: 0 auto; }
@@ -29,7 +28,7 @@
     .tab-btn { background: none; border: 1px solid transparent; color: #5a6a7a; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; }
     .tab-btn:hover { color: #c0a060; border-color: #2a3a4a; }
     .tab-btn.active { background: #1a2535; border-color: #b8860b; color: #daa520; }
-    .hist-panel { border-bottom: 1px solid #1e2a3a; background: #0a0f17; max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1e2a3a transparent; }
+    .hist-panel { border-bottom: 1px solid #1e2a3a; background: #0a0f17; max-height: 260px; overflow-y: auto; }
     .hist-panel-hdr { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a2030; }
     .hist-panel-title { font-size: 11px; color: #6a7a8a; text-transform: uppercase; letter-spacing: 0.08em; }
     .hist-clear-btn { background: none; border: none; color: #5a3a3a; font-size: 11px; cursor: pointer; font-family: 'Inter', sans-serif; }
@@ -92,6 +91,8 @@
     .api-key-input { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
     .api-key-input:focus { border-color: #b8860b44; }
     .api-key-input::placeholder { color: #3a4a5a; }
+    .api-key-hint { font-size: 10px; color: #4a5a6a; margin-top: 4px; margin-bottom: 8px; }
+    .api-key-hint a { color: #b8860b; text-decoration: none; }
     .input-row { display: flex; gap: 8px; align-items: flex-end; }
     .input-box { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; padding: 11px 14px; border-radius: 8px; font-size: 13.5px; font-family: 'Inter', sans-serif; resize: none; outline: none; line-height: 1.5; max-height: 120px; transition: border-color 0.15s; }
     .input-box:focus { border-color: #b8860b55; }
@@ -120,17 +121,15 @@ const SYSTEM_PROMPT = `You are VakilAI — an expert Indian legal research assis
 - Supreme Court and High Court judgments and citations
 - Bare Act sections with accurate numbering
 - Legal terminology in both English and Hindi
-- Current legal amendments and updates
 
 STRICT RULES:
 1. NEVER hallucinate section numbers or case citations. If unsure, say "Please verify on SCC Online / Manupatra."
-2. Always cite real sections: e.g., "Section 420 IPC", "Article 21 of the Constitution", "Order VII Rule 11 CPC"
-3. When referencing cases, use format: "Case Name v. Case Name, (Year) Volume SCC Page" — only if you are confident
-4. Write in a warm, clear, human tone — like a senior advocate explaining to a junior
-5. Structure answers with: Legal Position → Relevant Sections → Key Cases (if applicable) → Practical Advice
-6. If the question is in Hindi or Hinglish, respond in Hinglish (mix of Hindi and English legal terms)
-7. Always end with a "⚠️ Verify on:" recommendation pointing to SCC Online, Manupatra, or Indian Kanoon
-8. If an image is provided, analyze it carefully — it may be a legal document, judgment, FIR, notice, or contract.`;
+2. Always cite real sections: e.g., "Section 420 IPC", "Article 21 of the Constitution"
+3. Write in a warm, clear, human tone — like a senior advocate explaining to a junior
+4. Structure answers with: Legal Position → Relevant Sections → Key Cases (if applicable) → Practical Advice
+5. If the question is in Hindi or Hinglish, respond in Hinglish
+6. Always end with a "⚠️ Verify on:" recommendation
+7. If an image is provided, analyze it — it may be a legal document, FIR, notice, or contract.`;
 
 const TABS = [
   { id: "research", label: "⚖️ Research", icon: "⚖️", desc: "Ask any legal question" },
@@ -147,8 +146,8 @@ const QUICK_PROMPTS = {
 };
 
 const SOURCES = [
-  { name: "SCC Online",    url: "https://www.scconline.com" },
-  { name: "Manupatra",     url: "https://www.manupatrafast.com" },
+  { name: "SCC Online", url: "https://www.scconline.com" },
+  { name: "Manupatra",  url: "https://www.manupatrafast.com" },
   { name: "Indian Kanoon", url: "https://indiankanoon.org", note: "FREE" },
 ];
 
@@ -162,7 +161,7 @@ function timeAgo(ts) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("research");
-  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_api_key") || "");
+  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_gemini_key") || "");
   const [messages,  setMessages]  = useState({ research:[], analyze:[], draft:[], explain:[] });
   const [input,     setInput]     = useState("");
   const [loading,   setLoading]   = useState(false);
@@ -177,7 +176,7 @@ function App() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, loading]);
 
-  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_api_key", val); }
+  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_gemini_key", val); }
 
   function pushHistory(q, tab) {
     const entry = { id: Date.now(), question: q.slice(0,120), tab, ts: Date.now() };
@@ -197,41 +196,66 @@ function App() {
   async function sendMessage(overrideInput) {
     const userText = (overrideInput || input).trim();
     if (!userText && !imageData) return;
-    if (!apiKey.trim()) { alert("Please enter your Anthropic API key above."); return; }
+    if (!apiKey.trim()) { alert("Please enter your Gemini API key. Get it free from aistudio.google.com"); return; }
 
     const display = userText || "📷 Analyzing image...";
     pushHistory(display, activeTab);
 
-    let rawContent;
-    if (imageData) {
-      rawContent = [
-        { type:"image", source:{ type:"base64", media_type: imageData.mediaType, data: imageData.base64 } },
-        { type:"text",  text:`[MODE: ${activeTab.toUpperCase()}]\n${userText || "Analyze this legal document/image and provide relevant legal insights."}` }
-      ];
-    } else {
-      rawContent = activeTab === "analyze" && pastedDoc
-        ? `[DOCUMENT TO ANALYZE]\n${pastedDoc}\n\n[USER QUESTION]\n${userText}`
-        : `[MODE: ${activeTab.toUpperCase()}]\n${userText}`;
-    }
+    const contextText = activeTab === "analyze" && pastedDoc
+      ? `[DOCUMENT TO ANALYZE]\n${pastedDoc}\n\n[USER QUESTION]\n${userText}`
+      : `[MODE: ${activeTab.toUpperCase()}]\n${userText || "Analyze this legal document/image."}`;
 
-    const newMsg  = { role:"user", content: display, rawContent, imgPreview: imageData?.previewUrl };
+    const newMsg  = { role: "user", content: display, imgPreview: imageData?.previewUrl };
     const updated = [...cur, newMsg];
     setMessages(prev => ({ ...prev, [activeTab]: updated }));
     setInput(""); setImageData(null); setLoading(true);
     if (taRef.current) taRef.current.style.height = "auto";
 
     try {
-      const apiMsgs = updated.map(m => ({ role: m.role, content: m.rawContent || m.content }));
-      const res = await fetch("https://super-morning-3efd.sourabhpatel9098333177.workers.dev", {
-        method: "POST",
-        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, system: SYSTEM_PROMPT, messages: apiMsgs }),
+      // Build Gemini contents array from history
+      const contents = updated.map((m, idx) => {
+        if (m.role === "user") {
+          // Last user message — may have image
+          if (idx === updated.length - 1 && imageData) {
+            return {
+              role: "user",
+              parts: [
+                { inline_data: { mime_type: imageData.mediaType, data: imageData.base64 } },
+                { text: contextText }
+              ]
+            };
+          }
+          return { role: "user", parts: [{ text: m.rawText || m.content }] };
+        } else {
+          return { role: "model", parts: [{ text: m.content }] };
+        }
       });
+
+      // Fix last user message text
+      contents[contents.length - 1] = imageData
+        ? { role: "user", parts: [{ inline_data: { mime_type: imageData.mediaType, data: imageData.base64 } }, { text: contextText }] }
+        : { role: "user", parts: [{ text: contextText }] };
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents,
+            generationConfig: { maxOutputTokens: 1500, temperature: 0.3 }
+          }),
+        }
+      );
+
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      const text = data.content?.map(b => b.text||"").join("\n") || "No response.";
-      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role:"assistant", content: text }] }));
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+
+      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: text }] }));
     } catch(e) {
-      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role:"assistant", content:`⚠️ Error: ${e.message}` }] }));
+      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: `⚠️ Error: ${e.message}` }] }));
     }
     setLoading(false);
   }
@@ -246,146 +270,145 @@ function App() {
         .replace(/(Section \d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s*(?:IPC|CrPC|CPC|IEA|NI Act|HMA|IT Act)?)/g, '<span class="section-badge">$1</span>')
         .replace(/(Article \d+[A-Z]?)/g, '<span class="section-badge">$1</span>')
         .replace(/(Order [IVXLC]+ Rule \d+)/g, '<span class="section-badge">$1</span>');
-      if (line.startsWith("⚠️"))   return React.createElement("p",   { key:i, className:"verify-note",    dangerouslySetInnerHTML:{__html:f} });
+      if (line.startsWith("⚠️"))   return React.createElement("p",    { key:i, className:"verify-note",    dangerouslySetInnerHTML:{__html:f} });
       if (line.startsWith("## "))  return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/##\s*/,"")} });
       if (line.startsWith("### ")) return React.createElement("span", { key:i, className:"msg-heading",    dangerouslySetInnerHTML:{__html:f.replace(/###\s*/,"")} });
-      if (line.startsWith("- ") || line.startsWith("• ")) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"")} });
+      if (line.startsWith("# "))   return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/#\s*/,"")} });
+      if (line.startsWith("- ") || line.startsWith("• ") || line.match(/^\d+\./)) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"").replace(/^\d+\.\s*/,"")} });
       if (line.trim()==="") return React.createElement("br", { key:i });
       return React.createElement("p", { key:i, dangerouslySetInnerHTML:{__html:f} });
     });
   }
 
-  return (
-    React.createElement(React.Fragment, null,
-      React.createElement("div", { className:"app" },
+  return React.createElement(React.Fragment, null,
+    React.createElement("div", { className:"app" },
 
-        // HEADER
-        React.createElement("div", { className:"header" },
-          React.createElement("div", { className:"header-top" },
-            React.createElement("div", { className:"logo-seal" }, "⚖️"),
-            React.createElement("div", null,
-              React.createElement("div", { className:"header-title" }, "VakilAI"),
-              React.createElement("div", { className:"header-sub" }, "Indian Legal Research Assistant")
-            ),
-            React.createElement("div", { className:"header-right" },
-              React.createElement("button", { className:`hist-btn${showHist?" active":""}`, onClick:()=>setShowHist(v=>!v) },
-                "📜 History" + (history.length > 0 ? ` (${history.length})` : "")
-              ),
-              cur.length > 0 && React.createElement("button", { className:"clear-btn", onClick:()=>setMessages(p=>({...p,[activeTab]:[]})) }, "Clear")
-            )
+      // HEADER
+      React.createElement("div", { className:"header" },
+        React.createElement("div", { className:"header-top" },
+          React.createElement("div", { className:"logo-seal" }, "⚖️"),
+          React.createElement("div", null,
+            React.createElement("div", { className:"header-title" }, "VakilAI"),
+            React.createElement("div", { className:"header-sub" }, "Indian Legal Research Assistant")
           ),
-          React.createElement("div", { className:"tabs" },
-            TABS.map(tab => React.createElement("button", { key:tab.id, className:`tab-btn${activeTab===tab.id?" active":""}`, onClick:()=>setActiveTab(tab.id) }, tab.label))
+          React.createElement("div", { className:"header-right" },
+            React.createElement("button", { className:`hist-btn${showHist?" active":""}`, onClick:()=>setShowHist(v=>!v) },
+              "📜 History" + (history.length > 0 ? ` (${history.length})` : "")
+            ),
+            cur.length > 0 && React.createElement("button", { className:"clear-btn", onClick:()=>setMessages(p=>({...p,[activeTab]:[]})) }, "Clear")
           )
         ),
+        React.createElement("div", { className:"tabs" },
+          TABS.map(tab => React.createElement("button", { key:tab.id, className:`tab-btn${activeTab===tab.id?" active":""}`, onClick:()=>setActiveTab(tab.id) }, tab.label))
+        )
+      ),
 
-        // HISTORY PANEL
-        showHist && React.createElement("div", { className:"hist-panel" },
-          React.createElement("div", { className:"hist-panel-hdr" },
-            React.createElement("span", { className:"hist-panel-title" }, "Recent Questions"),
-            history.length > 0 && React.createElement("button", { className:"hist-clear-btn", onClick:()=>{ setHistory([]); localStorage.removeItem("vakil_history"); } }, "🗑 Clear all")
+      // HISTORY
+      showHist && React.createElement("div", { className:"hist-panel" },
+        React.createElement("div", { className:"hist-panel-hdr" },
+          React.createElement("span", { className:"hist-panel-title" }, "Recent Questions"),
+          history.length > 0 && React.createElement("button", { className:"hist-clear-btn", onClick:()=>{ setHistory([]); localStorage.removeItem("vakil_history"); } }, "🗑 Clear all")
+        ),
+        history.length === 0
+          ? React.createElement("div", { className:"hist-empty" }, "No history yet.")
+          : React.createElement("div", { className:"hist-list" },
+              history.map(item => React.createElement("div", { key:item.id, className:"hist-item",
+                onClick:()=>{ setActiveTab(item.tab); setInput(item.question); setShowHist(false); setTimeout(()=>taRef.current?.focus(),100); } },
+                React.createElement("div", { className:"hist-item-q" }, item.question),
+                React.createElement("div", { className:"hist-item-meta" },
+                  React.createElement("span", { className:"hist-item-tab" }, item.tab),
+                  React.createElement("span", { className:"hist-item-time" }, timeAgo(item.ts))
+                )
+              ))
+            )
+      ),
+
+      // BODY
+      React.createElement("div", { className:"body" },
+
+        activeTab==="analyze" && React.createElement("div", { className:"doc-panel" },
+          React.createElement("div", { className:"doc-panel-label" }, "Paste Judgment / Document here"),
+          React.createElement("textarea", { className:"doc-textarea", placeholder:"Paste the full text of a judgment, legal notice, FIR, or any legal document...", value:pastedDoc, onChange:e=>setPastedDoc(e.target.value) })
+        ),
+
+        imageData && React.createElement("div", { className:"img-preview" },
+          React.createElement("img", { src:imageData.previewUrl, className:"img-thumb", alt:"preview" }),
+          React.createElement("div", { className:"img-info" },
+            React.createElement("div", { className:"img-name" }, imageData.name),
+            React.createElement("div", { className:"img-hint" }, "Image ready — type a question or send to analyze")
           ),
-          history.length === 0
-            ? React.createElement("div", { className:"hist-empty" }, "No history yet. Ask a question to get started.")
-            : React.createElement("div", { className:"hist-list" },
-                history.map(item => React.createElement("div", { key:item.id, className:"hist-item", onClick:()=>{ setActiveTab(item.tab); setInput(item.question); setShowHist(false); setTimeout(()=>taRef.current?.focus(),100); } },
-                  React.createElement("div", { className:"hist-item-q" }, item.question),
-                  React.createElement("div", { className:"hist-item-meta" },
-                    React.createElement("span", { className:"hist-item-tab" }, item.tab),
-                    React.createElement("span", { className:"hist-item-time" }, timeAgo(item.ts))
+          React.createElement("button", { className:"img-rm", onClick:()=>setImageData(null) }, "✕")
+        ),
+
+        // MESSAGES
+        React.createElement("div", { className:"messages" },
+          cur.length === 0
+            ? React.createElement("div", { className:"empty-state" },
+                React.createElement("div", { className:"empty-icon" }, TABS.find(t=>t.id===activeTab)?.icon),
+                React.createElement("div", { className:"empty-title" },
+                  activeTab==="research"?"Ask any Indian legal question":activeTab==="analyze"?"Analyze a judgment or document":activeTab==="draft"?"Draft legal documents":"Get concepts explained clearly"
+                ),
+                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + " — powered by Gemini AI, free to use."),
+                React.createElement("div", { className:"quick-prompts" },
+                  QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
+                )
+              )
+            : React.createElement(React.Fragment, null,
+                cur.map((msg,i) =>
+                  React.createElement("div", { key:i, className:`msg-row${msg.role==="user"?" user":""}` },
+                    msg.role==="assistant" && React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
+                    React.createElement("div", { className:`msg-bubble${msg.role==="user"?" user":" ai"}` },
+                      msg.imgPreview && React.createElement("img", { src:msg.imgPreview, className:"msg-img", alt:"uploaded" }),
+                      msg.role==="user" ? React.createElement("p", null, msg.content) : fmt(msg.content)
+                    ),
+                    msg.role==="user" && React.createElement("div", { className:"msg-avatar user-av" }, "👤")
                   )
-                ))
+                ),
+                loading && React.createElement("div", { className:"loading-row" },
+                  React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
+                  React.createElement("div", { className:"typing-dots" },
+                    React.createElement("div", { className:"dot" }),
+                    React.createElement("div", { className:"dot" }),
+                    React.createElement("div", { className:"dot" })
+                  )
+                ),
+                React.createElement("div", { ref:bottomRef })
               )
         ),
 
-        // BODY
-        React.createElement("div", { className:"body" },
-
-          activeTab==="analyze" && React.createElement("div", { className:"doc-panel" },
-            React.createElement("div", { className:"doc-panel-label" }, "Paste Judgment / Document here"),
-            React.createElement("textarea", { className:"doc-textarea", placeholder:"Paste the full text of a judgment, legal notice, FIR, or any legal document...", value:pastedDoc, onChange:e=>setPastedDoc(e.target.value) })
+        // INPUT
+        React.createElement("div", { className:"input-area" },
+          React.createElement("div", { className:"api-key-row" },
+            React.createElement("span", { className:"api-key-label" }, "🔑 Gemini Key:"),
+            React.createElement("input", { className:"api-key-input", type:"password", placeholder:"AIza... (free from aistudio.google.com)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
           ),
-
-          imageData && React.createElement("div", { className:"img-preview" },
-            React.createElement("img", { src:imageData.previewUrl, className:"img-thumb", alt:"preview" }),
-            React.createElement("div", { className:"img-info" },
-              React.createElement("div", { className:"img-name" }, imageData.name),
-              React.createElement("div", { className:"img-hint" }, "Image ready — type a question or just send to analyze")
-            ),
-            React.createElement("button", { className:"img-rm", onClick:()=>setImageData(null) }, "✕")
+          React.createElement("div", { className:"api-key-hint" },
+            "Free API key: ",
+            React.createElement("a", { href:"https://aistudio.google.com/apikey", target:"_blank" }, "aistudio.google.com/apikey")
           ),
-
-          // MESSAGES
-          React.createElement("div", { className:"messages" },
-            cur.length === 0
-              ? React.createElement("div", { className:"empty-state" },
-                  React.createElement("div", { className:"empty-icon" }, TABS.find(t=>t.id===activeTab)?.icon),
-                  React.createElement("div", { className:"empty-title" },
-                    activeTab==="research" ? "Ask any Indian legal question" :
-                    activeTab==="analyze"  ? "Analyze a judgment or document" :
-                    activeTab==="draft"    ? "Draft legal documents" : "Get concepts explained clearly"
-                  ),
-                  React.createElement("div", { className:"empty-desc" },
-                    (TABS.find(t=>t.id===activeTab)?.desc) + " — you can also upload a legal document photo using 📎 below."
-                  ),
-                  React.createElement("div", { className:"quick-prompts" },
-                    QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
-                  )
-                )
-              : React.createElement(React.Fragment, null,
-                  cur.map((msg,i) =>
-                    React.createElement("div", { key:i, className:`msg-row${msg.role==="user"?" user":""}` },
-                      msg.role==="assistant" && React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
-                      React.createElement("div", { className:`msg-bubble${msg.role==="user"?" user":" ai"}` },
-                        msg.imgPreview && React.createElement("img", { src:msg.imgPreview, className:"msg-img", alt:"uploaded" }),
-                        msg.role==="user" ? React.createElement("p", null, msg.content) : fmt(msg.content)
-                      ),
-                      msg.role==="user" && React.createElement("div", { className:"msg-avatar user-av" }, "👤")
-                    )
-                  ),
-                  loading && React.createElement("div", { className:"loading-row" },
-                    React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
-                    React.createElement("div", { className:"typing-dots" },
-                      React.createElement("div", { className:"dot" }),
-                      React.createElement("div", { className:"dot" }),
-                      React.createElement("div", { className:"dot" })
-                    )
-                  ),
-                  React.createElement("div", { ref:bottomRef })
-                )
-          ),
-
-          // INPUT
-          React.createElement("div", { className:"input-area" },
-            React.createElement("div", { className:"api-key-row" },
-              React.createElement("span", { className:"api-key-label" }, "🔑 API Key:"),
-              React.createElement("input", { className:"api-key-input", type:"password", placeholder:"sk-ant-... (saved in browser)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
-            ),
-            React.createElement("div", { className:"input-row" },
-              React.createElement("button", { className:`upload-btn${imageData?" has-img":""}`, onClick:()=>fileRef.current?.click(), title:"Upload image" }, "📎"),
-              React.createElement("textarea", {
-                ref:taRef, className:"input-box", rows:1,
-                placeholder: imageData ? "Ask about this image or just send to analyze..." : activeTab==="research" ? "e.g. What are the elements of Section 302 IPC?" : activeTab==="analyze" ? "Ask about the document above..." : activeTab==="draft" ? "e.g. Draft a legal notice for unpaid dues..." : "e.g. Explain what is Mens Rea in simple words...",
-                value:input,
-                onChange:e=>{ setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; },
-                onKeyDown:handleKey
-              }),
-              React.createElement("button", { className:"send-btn", onClick:()=>sendMessage(), disabled:loading||(!input.trim()&&!imageData) }, "▶")
-            )
-          ),
-
-          // SOURCES
-          React.createElement("div", { className:"sources-bar" },
-            React.createElement("span", { className:"sources-label" }, "Verify on"),
-            SOURCES.map(s => React.createElement("a", { key:s.name, href:s.url, target:"_blank", rel:"noopener noreferrer", className:"source-link" },
-              s.name, s.note && React.createElement("span", { className:"source-free" }, s.note)
-            ))
+          React.createElement("div", { className:"input-row" },
+            React.createElement("button", { className:`upload-btn${imageData?" has-img":""}`, onClick:()=>fileRef.current?.click(), title:"Upload image" }, "📎"),
+            React.createElement("textarea", {
+              ref:taRef, className:"input-box", rows:1,
+              placeholder: imageData?"Ask about this image or send to analyze...":activeTab==="research"?"e.g. What are the elements of Section 302 IPC?":activeTab==="analyze"?"Ask about the document above...":activeTab==="draft"?"e.g. Draft a legal notice for unpaid dues...":"e.g. Explain what is Mens Rea in simple words...",
+              value:input,
+              onChange:e=>{ setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; },
+              onKeyDown:handleKey
+            }),
+            React.createElement("button", { className:"send-btn", onClick:()=>sendMessage(), disabled:loading||(!input.trim()&&!imageData) }, "▶")
           )
         ),
 
-        // Hidden file input
-        React.createElement("input", { ref:fileRef, className:"hidden", type:"file", accept:"image/*", onChange:e=>{ const f=e.target.files?.[0]; if(f) processFile(f); e.target.value=""; } })
-      )
+        // SOURCES
+        React.createElement("div", { className:"sources-bar" },
+          React.createElement("span", { className:"sources-label" }, "Verify on"),
+          SOURCES.map(s => React.createElement("a", { key:s.name, href:s.url, target:"_blank", rel:"noopener noreferrer", className:"source-link" },
+            s.name, s.note && React.createElement("span", { className:"source-free" }, s.note)
+          ))
+        )
+      ),
+
+      React.createElement("input", { ref:fileRef, className:"hidden", type:"file", accept:"image/*", onChange:e=>{ const f=e.target.files?.[0]; if(f) processFile(f); e.target.value=""; } })
     )
   );
 }
