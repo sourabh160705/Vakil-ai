@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VakilAI — Indian Legal Research Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #e6d9c0; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    .app { display: flex; flex-direction: column; height: 100vh; max-width: 900px; margin: 0 auto; }
+    .header { padding: 18px 24px 12px; border-bottom: 1px solid #1e2a3a; background: #0d1117; position: sticky; top: 0; z-index: 10; }
+    .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .logo-seal { width: 40px; height: 40px; background: linear-gradient(135deg, #b8860b, #daa520); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 0 12px rgba(184,134,11,0.3); }
+    .header-title { font-family: 'EB Garamond', serif; font-size: 22px; font-weight: 600; color: #daa520; letter-spacing: 0.02em; }
+    .header-sub { font-size: 11px; color: #6a7a8a; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .hist-btn { background: none; border: 1px solid #1e2a3a; color: #5a6a7a; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+    .hist-btn:hover { color: #daa520; border-color: #b8860b44; }
+    .hist-btn.active { color: #daa520; border-color: #b8860b; background: #1a2535; }
+    .clear-btn { background: none; border: 1px solid #1e2a3a; color: #4a5a6a; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .clear-btn:hover { color: #c05050; border-color: #5a2020; }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { background: none; border: 1px solid transparent; color: #5a6a7a; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .tab-btn:hover { color: #c0a060; border-color: #2a3a4a; }
+    .tab-btn.active { background: #1a2535; border-color: #b8860b; color: #daa520; }
+    .hist-panel { border-bottom: 1px solid #1e2a3a; background: #0a0f17; max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1e2a3a transparent; }
+    .hist-panel-hdr { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a2030; }
+    .hist-panel-title { font-size: 11px; color: #6a7a8a; text-transform: uppercase; letter-spacing: 0.08em; }
+    .hist-clear-btn { background: none; border: none; color: #5a3a3a; font-size: 11px; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .hist-clear-btn:hover { color: #c05050; }
+    .hist-empty { padding: 20px; text-align: center; color: #3a4a5a; font-size: 13px; }
+    .hist-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .hist-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
+    .hist-item:hover { background: #0f1923; border-color: #1e2a3a; }
+    .hist-item-q { font-size: 12.5px; color: #b0a070; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .hist-item-meta { display: flex; gap: 8px; align-items: center; }
+    .hist-item-tab { font-size: 10px; background: #1a2535; color: #6a8aaa; padding: 1px 6px; border-radius: 3px; }
+    .hist-item-time { font-size: 10px; color: #3a4a5a; }
+    .body { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .doc-panel { background: #0f1923; border-bottom: 1px solid #1e2a3a; padding: 12px 20px; }
+    .doc-panel-label { font-size: 11px; color: #6a7a8a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .doc-textarea { width: 100%; background: #0d1117; border: 1px solid #1e2a3a; color: #c0b090; padding: 10px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; resize: vertical; min-height: 80px; max-height: 160px; outline: none; line-height: 1.5; }
+    .doc-textarea:focus { border-color: #b8860b44; }
+    .doc-textarea::placeholder { color: #3a4a5a; }
+    .img-preview { background: #0a1220; border-bottom: 1px solid #1e2a3a; padding: 8px 20px; display: flex; align-items: center; gap: 10px; }
+    .img-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #b8860b55; }
+    .img-info { flex: 1; }
+    .img-name { font-size: 11px; color: #8a9aaa; }
+    .img-hint { font-size: 10px; color: #4a5a6a; margin-top: 2px; }
+    .img-rm { background: none; border: none; color: #6a3a3a; font-size: 18px; cursor: pointer; padding: 2px 6px; }
+    .img-rm:hover { color: #c05050; }
+    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: #1e2a3a transparent; }
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; gap: 20px; }
+    .empty-icon { font-size: 48px; opacity: 0.6; }
+    .empty-title { font-family: 'EB Garamond', serif; font-size: 20px; color: #b0a080; }
+    .empty-desc { font-size: 13px; color: #4a5a6a; max-width: 340px; line-height: 1.6; }
+    .quick-prompts { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 480px; }
+    .quick-btn { background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 12.5px; text-align: left; transition: all 0.15s; font-family: 'Inter', sans-serif; line-height: 1.4; }
+    .quick-btn:hover { border-color: #b8860b44; color: #c0a060; background: #111b27; }
+    .msg-row { display: flex; gap: 10px; align-items: flex-start; }
+    .msg-row.user { justify-content: flex-end; }
+    .msg-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+    .msg-avatar.ai { background: #1a2535; border: 1px solid #b8860b55; }
+    .msg-avatar.user-av { background: #1a2a1a; border: 1px solid #2a5a2a55; }
+    .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 10px; font-size: 13.5px; line-height: 1.7; }
+    .msg-bubble.user { background: #111b11; border: 1px solid #2a4a2a; color: #a0c0a0; border-bottom-right-radius: 3px; }
+    .msg-bubble.ai { background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; border-bottom-left-radius: 3px; }
+    .msg-bubble p { margin-bottom: 6px; }
+    .msg-bubble p:last-child { margin-bottom: 0; }
+    .msg-bubble li { margin-left: 16px; margin-bottom: 4px; }
+    .msg-bubble strong { color: #daa520; font-weight: 600; }
+    .msg-heading-lg { font-family: 'EB Garamond', serif; font-size: 17px; color: #c8a840; margin: 10px 0 6px; display: block; }
+    .msg-heading { font-size: 13px; font-weight: 600; color: #a09060; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; display: block; }
+    .section-badge { display: inline-block; background: #1a2535; border: 1px solid #b8860b55; color: #daa520; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .verify-note { margin-top: 10px; padding: 8px 12px; background: #1a1500; border-left: 3px solid #b8860b; border-radius: 0 6px 6px 0; font-size: 12px; color: #9a8050; }
+    .msg-img { max-width: 200px; border-radius: 6px; border: 1px solid #2a3a4a; margin-bottom: 8px; display: block; }
+    .loading-row { display: flex; align-items: center; gap: 10px; }
+    .typing-dots { display: flex; gap: 4px; padding: 12px 16px; background: #0f1923; border: 1px solid #1e2a3a; border-radius: 10px; border-bottom-left-radius: 3px; }
+    .dot { width: 6px; height: 6px; background: #b8860b; border-radius: 50%; animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-6px);opacity:1} }
+    .input-area { padding: 14px 20px 18px; border-top: 1px solid #1e2a3a; background: #0d1117; }
+    .api-key-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .api-key-label { font-size: 11px; color: #5a6a7a; white-space: nowrap; }
+    .api-key-input { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
+    .api-key-input:focus { border-color: #b8860b44; }
+    .api-key-input::placeholder { color: #3a4a5a; }
+    .input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .input-box { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; padding: 11px 14px; border-radius: 8px; font-size: 13.5px; font-family: 'Inter', sans-serif; resize: none; outline: none; line-height: 1.5; max-height: 120px; transition: border-color 0.15s; }
+    .input-box:focus { border-color: #b8860b55; }
+    .input-box::placeholder { color: #3a4a5a; }
+    .upload-btn { background: #0f1923; border: 1px solid #1e2a3a; color: #5a6a7a; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+    .upload-btn:hover { color: #daa520; border-color: #b8860b44; }
+    .upload-btn.has-img { color: #daa520; border-color: #b8860b; background: #1a2535; }
+    .send-btn { background: linear-gradient(135deg, #b8860b, #daa520); border: none; color: #0d1117; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s; flex-shrink: 0; }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .sources-bar { padding: 8px 20px; border-top: 1px solid #1a2030; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sources-label { font-size: 10px; color: #3a4a5a; text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0; }
+    .source-link { font-size: 11px; color: #5a6a7a; text-decoration: none; padding: 3px 8px; border: 1px solid #1e2a3a; border-radius: 4px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+    .source-link:hover { color: #daa520; border-color: #b8860b44; }
+    .source-free { font-size: 9px; background: #1a3a1a; color: #5a8a5a; padding: 1px 4px; border-radius: 3px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const SYSTEM_PROMPT = `You are VakilAI — an expert Indian legal research assistant with deep knowledge of:
+- Indian Constitution, IPC, CrPC, CPC, IEA, and all major Central Acts
+- Supreme Court and High Court judgments and citations
+- Bare Act sections with accurate numbering
+- Legal terminology in both English and Hindi
+- Current legal amendments and updates
+
+STRICT RULES:
+1. NEVER hallucinate section numbers or case citations. If unsure, say "Please verify on SCC Online / Manupatra."
+2. Always cite real sections: e.g., "Section 420 IPC", "Article 21 of the Constitution", "Order VII Rule 11 CPC"
+3. When referencing cases, use format: "Case Name v. Case Name, (Year) Volume SCC Page" — only if you are confident
+4. Write in a warm, clear, human tone — like a senior advocate explaining to a junior
+5. Structure answers with: Legal Position → Relevant Sections → Key Cases (if applicable) → Practical Advice
+6. If the question is in Hindi or Hinglish, respond in Hinglish (mix of Hindi and English legal terms)
+7. Always end with a "⚠️ Verify on:" recommendation pointing to SCC Online, Manupatra, or Indian Kanoon
+8. If an image is provided, analyze it carefully — it may be a legal document, judgment, FIR, notice, or contract.`;
+
+const TABS = [
+  { id: "research", label: "⚖️ Research", icon: "⚖️", desc: "Ask any legal question" },
+  { id: "analyze",  label: "📄 Analyze",  icon: "📄", desc: "Paste judgment or document" },
+  { id: "draft",    label: "✍️ Draft",    icon: "✍️", desc: "Draft legal documents" },
+  { id: "explain",  label: "💡 Explain",  icon: "💡", desc: "Explain legal concepts" },
+];
+
+const QUICK_PROMPTS = {
+  research: ["What are the essential ingredients of Section 420 IPC?","Explain anticipatory bail under Section 438 CrPC","What are fundamental rights under Part III of the Constitution?","How is divorce filed under Hindu Marriage Act?"],
+  analyze:  ["Summarize this judgment and identify key holdings","What ratio decidendi is established in this case?","List all sections cited in this order","Is this judgment still good law?"],
+  draft:    ["Draft a legal notice for cheque bounce under Section 138 NI Act","Draft a plaint for recovery of money","Draft a reply to a legal notice","Draft a consumer complaint under Consumer Protection Act 2019"],
+  explain:  ["Explain res judicata in simple terms","What is the difference between cognizable and non-cognizable offence?","Explain the concept of natural justice","What is a Writ of Mandamus?"],
+};
+
+const SOURCES = [
+  { name: "SCC Online",    url: "https://www.scconline.com" },
+  { name: "Manupatra",     url: "https://www.manupatrafast.com" },
+  { name: "Indian Kanoon", url: "https://indiankanoon.org", note: "FREE" },
+];
+
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000) return "just now";
+  if (d < 3600000) return Math.floor(d/60000) + "m ago";
+  if (d < 86400000) return Math.floor(d/3600000) + "h ago";
+  return Math.floor(d/86400000) + "d ago";
+}
+
+function App() {
+  const [activeTab, setActiveTab] = useState("research");
+  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_api_key") || "");
+  const [messages,  setMessages]  = useState({ research:[], analyze:[], draft:[], explain:[] });
+  const [input,     setInput]     = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [pastedDoc, setPastedDoc] = useState("");
+  const [imageData, setImageData] = useState(null);
+  const [showHist,  setShowHist]  = useState(false);
+  const [history,   setHistory]   = useState(() => { try { return JSON.parse(localStorage.getItem("vakil_history")||"[]"); } catch { return []; } });
+
+  const bottomRef = useRef(null);
+  const taRef     = useRef(null);
+  const fileRef   = useRef(null);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, loading]);
+
+  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_api_key", val); }
+
+  function pushHistory(q, tab) {
+    const entry = { id: Date.now(), question: q.slice(0,120), tab, ts: Date.now() };
+    const updated = [entry, ...history].slice(0, 50);
+    setHistory(updated);
+    localStorage.setItem("vakil_history", JSON.stringify(updated));
+  }
+
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => setImageData({ base64: ev.target.result.split(",")[1], mediaType: file.type||"image/jpeg", previewUrl: ev.target.result, name: file.name });
+    reader.readAsDataURL(file);
+  }
+
+  const cur = messages[activeTab];
+
+  async function sendMessage(overrideInput) {
+    const userText = (overrideInput || input).trim();
+    if (!userText && !imageData) return;
+    if (!apiKey.trim()) { alert("Please enter your Anthropic API key above."); return; }
+
+    const display = userText || "📷 Analyzing image...";
+    pushHistory(display, activeTab);
+
+    let rawContent;
+    if (imageData) {
+      rawContent = [
+        { type:"image", source:{ type:"base64", media_type: imageData.mediaType, data: imageData.base64 } },
+        { type:"text",  text:`[MODE: ${activeTab.toUpperCase()}]\n${userText || "Analyze this legal document/image and provide relevant legal insights."}` }
+      ];
+    } else {
+      rawContent = activeTab === "analyze" && pastedDoc
+        ? `[DOCUMENT TO ANALYZE]\n${pastedDoc}\n\n[USER QUESTION]\n${userText}`
+        : `[MODE: ${activeTab.toUpperCase()}]\n${userText}`;
+    }
+
+    const newMsg  = { role:"user", content: display, rawContent, imgPreview: imageData?.previewUrl };
+    const updated = [...cur, newMsg];
+    setMessages(prev => ({ ...prev, [activeTab]: updated }));
+    setInput(""); setImageData(null); setLoading(true);
+    if (taRef.current) taRef.current.style.height = "auto";
+
+    try {
+      const apiMsgs = updated.map(m => ({ role: m.role, content: m.rawContent || m.content }));
+      const res = await fetch("https://super-morning-3efd.sourabhpatel9098333177.workers.dev", {
+        method: "POST",
+        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, system: SYSTEM_PROMPT, messages: apiMsgs }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const text = data.content?.map(b => b.text||"").join("\n") || "No response.";
+      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role:"assistant", content: text }] }));
+    } catch(e) {
+      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role:"assistant", content:`⚠️ Error: ${e.message}` }] }));
+    }
+    setLoading(false);
+  }
+
+  function handleKey(e) { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+
+  function fmt(text) {
+    return text.split("\n").map((line, i) => {
+      let f = line
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        .replace(/(Section \d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s*(?:IPC|CrPC|CPC|IEA|NI Act|HMA|IT Act)?)/g, '<span class="section-badge">$1</span>')
+        .replace(/(Article \d+[A-Z]?)/g, '<span class="section-badge">$1</span>')
+        .replace(/(Order [IVXLC]+ Rule \d+)/g, '<span class="section-badge">$1</span>');
+      if (line.startsWith("⚠️"))   return React.createElement("p",   { key:i, className:"verify-note",    dangerouslySetInnerHTML:{__html:f} });
+      if (line.startsWith("## "))  return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/##\s*/,"")} });
+      if (line.startsWith("### ")) return React.createElement("span", { key:i, className:"msg-heading",    dangerouslySetInnerHTML:{__html:f.replace(/###\s*/,"")} });
+      if (line.startsWith("- ") || line.startsWith("• ")) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"")} });
+      if (line.trim()==="") return React.createElement("br", { key:i });
+      return React.createElement("p", { key:i, dangerouslySetInnerHTML:{__html:f} });
+    });
+  }
+
+  return (
+    React.createElement(React.Fragment, null,
+      React.createElement("div", { className:"app" },
+
+        // HEADER
+        React.createElement("div", { className:"header" },
+          React.createElement("div", { className:"header-top" },
+            React.createElement("div", { className:"logo-seal" }, "⚖️"),
+            React.createElement("div", null,
+              React.createElement("div", { className:"header-title" }, "VakilAI"),
+              React.createElement("div", { className:"header-sub" }, "Indian Legal Research Assistant")
+            ),
+            React.createElement("div", { className:"header-right" },
+              React.createElement("button", { className:`hist-btn${showHist?" active":""}`, onClick:()=>setShowHist(v=>!v) },
+                "📜 History" + (history.length > 0 ? ` (${history.length})` : "")
+              ),
+              cur.length > 0 && React.createElement("button", { className:"clear-btn", onClick:()=>setMessages(p=>({...p,[activeTab]:[]})) }, "Clear")
+            )
+          ),
+          React.createElement("div", { className:"tabs" },
+            TABS.map(tab => React.createElement("button", { key:tab.id, className:`tab-btn${activeTab===tab.id?" active":""}`, onClick:()=>setActiveTab(tab.id) }, tab.label))
+          )
+        ),
+
+        // HISTORY PANEL
+        showHist && React.createElement("div", { className:"hist-panel" },
+          React.createElement("div", { className:"hist-panel-hdr" },
+            React.createElement("span", { className:"hist-panel-title" }, "Recent Questions"),
+            history.length > 0 && React.createElement("button", { className:"hist-clear-btn", onClick:()=>{ setHistory([]); localStorage.removeItem("vakil_history"); } }, "🗑 Clear all")
+          ),
+          history.length === 0
+            ? React.createElement("div", { className:"hist-empty" }, "No history yet. Ask a question to get started.")
+            : React.createElement("div", { className:"hist-list" },
+                history.map(item => React.createElement("div", { key:item.id, className:"hist-item", onClick:()=>{ setActiveTab(item.tab); setInput(item.question); setShowHist(false); setTimeout(()=>taRef.current?.focus(),100); } },
+                  React.createElement("div", { className:"hist-item-q" }, item.question),
+                  React.createElement("div", { className:"hist-item-meta" },
+                    React.createElement("span", { className:"hist-item-tab" }, item.tab),
+                    React.createElement("span", { className:"hist-item-time" }, timeAgo(item.ts))
+                  )
+                ))
+              )
+        ),
+
+        // BODY
+        React.createElement("div", { className:"body" },
+
+          activeTab==="analyze" && React.createElement("div", { className:"doc-panel" },
+            React.createElement("div", { className:"doc-panel-label" }, "Paste Judgment / Document here"),
+            React.createElement("textarea", { className:"doc-textarea", placeholder:"Paste the full text of a judgment, legal notice, FIR, or any legal document...", value:pastedDoc, onChange:e=>setPastedDoc(e.target.value) })
+          ),
+
+          imageData && React.createElement("div", { className:"img-preview" },
+            React.createElement("img", { src:imageData.previewUrl, className:"img-thumb", alt:"preview" }),
+            React.createElement("div", { className:"img-info" },
+              React.createElement("div", { className:"img-name" }, imageData.name),
+              React.createElement("div", { className:"img-hint" }, "Image ready — type a question or just send to analyze")
+            ),
+            React.createElement("button", { className:"img-rm", onClick:()=>setImageData(null) }, "✕")
+          ),
+
+          // MESSAGES
+          React.createElement("div", { className:"messages" },
+            cur.length === 0
+              ? React.createElement("div", { className:"empty-state" },
+                  React.createElement("div", { className:"empty-icon" }, TABS.find(t=>t.id===activeTab)?.icon),
+                  React.createElement("div", { className:"empty-title" },
+                    activeTab==="research" ? "Ask any Indian legal question" :
+                    activeTab==="analyze"  ? "Analyze a judgment or document" :
+                    activeTab==="draft"    ? "Draft legal documents" : "Get concepts explained clearly"
+                  ),
+                  React.createElement("div", { className:"empty-desc" },
+                    (TABS.find(t=>t.id===activeTab)?.desc) + " — you can also upload a legal document photo using 📎 below."
+                  ),
+                  React.createElement("div", { className:"quick-prompts" },
+                    QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
+                  )
+                )
+              : React.createElement(React.Fragment, null,
+                  cur.map((msg,i) =>
+                    React.createElement("div", { key:i, className:`msg-row${msg.role==="user"?" user":""}` },
+                      msg.role==="assistant" && React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
+                      React.createElement("div", { className:`msg-bubble${msg.role==="user"?" user":" ai"}` },
+                        msg.imgPreview && React.createElement("img", { src:msg.imgPreview, className:"msg-img", alt:"uploaded" }),
+                        msg.role==="user" ? React.createElement("p", null, msg.content) : fmt(msg.content)
+                      ),
+                      msg.role==="user" && React.createElement("div", { className:"msg-avatar user-av" }, "👤")
+                    )
+                  ),
+                  loading && React.createElement("div", { className:"loading-row" },
+                    React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
+                    React.createElement("div", { className:"typing-dots" },
+                      React.createElement("div", { className:"dot" }),
+                      React.createElement("div", { className:"dot" }),
+                      React.createElement("div", { className:"dot" })
+                    )
+                  ),
+                  React.createElement("div", { ref:bottomRef })
+                )
+          ),
+
+          // INPUT
+          React.createElement("div", { className:"input-area" },
+            React.createElement("div", { className:"api-key-row" },
+              React.createElement("span", { className:"api-key-label" }, "🔑 API Key:"),
+              React.createElement("input", { className:"api-key-input", type:"password", placeholder:"sk-ant-... (saved in browser)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
+            ),
+            React.createElement("div", { className:"input-row" },
+              React.createElement("button", { className:`upload-btn${imageData?" has-img":""}`, onClick:()=>fileRef.current?.click(), title:"Upload image" }, "📎"),
+              React.createElement("textarea", {
+                ref:taRef, className:"input-box", rows:1,
+                placeholder: imageData ? "Ask about this image or just send to analyze..." : activeTab==="research" ? "e.g. What are the elements of Section 302 IPC?" : activeTab==="analyze" ? "Ask about the document above..." : activeTab==="draft" ? "e.g. Draft a legal notice for unpaid dues..." : "e.g. Explain what is Mens Rea in simple words...",
+                value:input,
+                onChange:e=>{ setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; },
+                onKeyDown:handleKey
+              }),
+              React.createElement("button", { className:"send-btn", onClick:()=>sendMessage(), disabled:loading||(!input.trim()&&!imageData) }, "▶")
+            )
+          ),
+
+          // SOURCES
+          React.createElement("div", { className:"sources-bar" },
+            React.createElement("span", { className:"sources-label" }, "Verify on"),
+            SOURCES.map(s => React.createElement("a", { key:s.name, href:s.url, target:"_blank", rel:"noopener noreferrer", className:"source-link" },
+              s.name, s.note && React.createElement("span", { className:"source-free" }, s.note)
+            ))
+          )
+        ),
+
+        // Hidden file input
+        React.createElement("input", { ref:fileRef, className:"hidden", type:"file", accept:"image/*", onChange:e=>{ const f=e.target.files?.[0]; if(f) processFile(f); e.target.value=""; } })
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
