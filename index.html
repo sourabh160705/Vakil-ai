@@ -1,533 +1,530 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VakilAI — Indian Legal Research Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0d1117; color: #e6d9c0; font-family: 'Inter', sans-serif; min-height: 100vh; }
-    .app { display: flex; flex-direction: column; height: 100vh; max-width: 900px; margin: 0 auto; }
-    .header { padding: 18px 24px 12px; border-bottom: 1px solid #1e2a3a; background: #0d1117; position: sticky; top: 0; z-index: 10; }
-    .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-    .logo-seal { width: 40px; height: 40px; background: linear-gradient(135deg, #b8860b, #daa520); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 0 12px rgba(184,134,11,0.3); }
-    .header-title { font-family: 'EB Garamond', serif; font-size: 22px; font-weight: 600; color: #daa520; letter-spacing: 0.02em; }
-    .header-sub { font-size: 11px; color: #6a7a8a; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
-    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-    .hist-btn { background: none; border: 1px solid #1e2a3a; color: #5a6a7a; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-    .hist-btn:hover { color: #daa520; border-color: #b8860b44; }
-    .hist-btn.active { color: #daa520; border-color: #b8860b; background: #1a2535; }
-    .clear-btn { background: none; border: 1px solid #1e2a3a; color: #4a5a6a; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
-    .clear-btn:hover { color: #c05050; border-color: #5a2020; }
-    .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab-btn { background: none; border: 1px solid transparent; color: #5a6a7a; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; }
-    .tab-btn:hover { color: #c0a060; border-color: #2a3a4a; }
-    .tab-btn.active { background: #1a2535; border-color: #b8860b; color: #daa520; }
-    .hist-panel { border-bottom: 1px solid #1e2a3a; background: #0a0f17; max-height: 260px; overflow-y: auto; }
-    .hist-panel-hdr { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a2030; }
-    .hist-panel-title { font-size: 11px; color: #6a7a8a; text-transform: uppercase; letter-spacing: 0.08em; }
-    .hist-clear-btn { background: none; border: none; color: #5a3a3a; font-size: 11px; cursor: pointer; font-family: 'Inter', sans-serif; }
-    .hist-clear-btn:hover { color: #c05050; }
-    .hist-empty { padding: 20px; text-align: center; color: #3a4a5a; font-size: 13px; }
-    .hist-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
-    .hist-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
-    .hist-item:hover { background: #0f1923; border-color: #1e2a3a; }
-    .hist-item-q { font-size: 12.5px; color: #b0a070; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
-    .hist-item-meta { display: flex; gap: 8px; align-items: center; }
-    .hist-item-tab { font-size: 10px; background: #1a2535; color: #6a8aaa; padding: 1px 6px; border-radius: 3px; }
-    .hist-item-time { font-size: 10px; color: #3a4a5a; }
-    .body { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-    .doc-panel { background: #0f1923; border-bottom: 1px solid #1e2a3a; padding: 12px 20px; }
-    .doc-panel-label { font-size: 11px; color: #6a7a8a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-    .doc-textarea { width: 100%; background: #0d1117; border: 1px solid #1e2a3a; color: #c0b090; padding: 10px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; resize: vertical; min-height: 80px; max-height: 160px; outline: none; line-height: 1.5; }
-    .doc-textarea:focus { border-color: #b8860b44; }
-    .doc-textarea::placeholder { color: #3a4a5a; }
-    .img-preview { background: #0a1220; border-bottom: 1px solid #1e2a3a; padding: 8px 20px; display: flex; align-items: center; gap: 10px; }
-    .img-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #b8860b55; }
-    .img-info { flex: 1; }
-    .img-name { font-size: 11px; color: #8a9aaa; }
-    .img-hint { font-size: 10px; color: #4a5a6a; margin-top: 2px; }
-    .img-rm { background: none; border: none; color: #6a3a3a; font-size: 18px; cursor: pointer; padding: 2px 6px; }
-    .img-rm:hover { color: #c05050; }
-    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: #1e2a3a transparent; }
-    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; gap: 20px; }
-    .empty-icon { font-size: 48px; opacity: 0.6; }
-    .empty-title { font-family: 'EB Garamond', serif; font-size: 20px; color: #b0a080; }
-    .empty-desc { font-size: 13px; color: #4a5a6a; max-width: 340px; line-height: 1.6; }
-    .quick-prompts { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 480px; }
-    .quick-btn { background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 12.5px; text-align: left; transition: all 0.15s; font-family: 'Inter', sans-serif; line-height: 1.4; }
-    .quick-btn:hover { border-color: #b8860b44; color: #c0a060; background: #111b27; }
-    .msg-row { display: flex; gap: 10px; align-items: flex-start; }
-    .msg-row.user { justify-content: flex-end; }
-    .msg-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
-    .msg-avatar.ai { background: #1a2535; border: 1px solid #b8860b55; }
-    .msg-avatar.user-av { background: #1a2a1a; border: 1px solid #2a5a2a55; }
-    .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 10px; font-size: 13.5px; line-height: 1.7; }
-    .msg-bubble.user { background: #111b11; border: 1px solid #2a4a2a; color: #a0c0a0; border-bottom-right-radius: 3px; }
-    .msg-bubble.ai { background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; border-bottom-left-radius: 3px; }
-    .msg-bubble p { margin-bottom: 6px; }
-    .msg-bubble p:last-child { margin-bottom: 0; }
-    .msg-bubble li { margin-left: 16px; margin-bottom: 4px; }
-    .msg-bubble strong { color: #daa520; font-weight: 600; }
-    .msg-heading-lg { font-family: 'EB Garamond', serif; font-size: 17px; color: #c8a840; margin: 10px 0 6px; display: block; }
-    .msg-heading { font-size: 13px; font-weight: 600; color: #a09060; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; display: block; }
-    .section-badge { display: inline-block; background: #1a2535; border: 1px solid #b8860b55; color: #daa520; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-    .verify-note { margin-top: 10px; padding: 8px 12px; background: #1a1500; border-left: 3px solid #b8860b; border-radius: 0 6px 6px 0; font-size: 12px; color: #9a8050; }
-    .msg-img { max-width: 200px; border-radius: 6px; border: 1px solid #2a3a4a; margin-bottom: 8px; display: block; }
-    .loading-row { display: flex; align-items: center; gap: 10px; }
-    .typing-dots { display: flex; gap: 4px; padding: 12px 16px; background: #0f1923; border: 1px solid #1e2a3a; border-radius: 10px; border-bottom-left-radius: 3px; }
-    .dot { width: 6px; height: 6px; background: #b8860b; border-radius: 50%; animation: bounce 1.2s infinite; }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-6px);opacity:1} }
-    .input-area { padding: 14px 20px 18px; border-top: 1px solid #1e2a3a; background: #0d1117; }
-    .api-key-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
-    .api-key-label { font-size: 11px; color: #5a6a7a; white-space: nowrap; }
-    .api-key-input { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
-    .api-key-input:focus { border-color: #b8860b44; }
-    .api-key-input::placeholder { color: #3a4a5a; }
-    .api-hint { font-size: 10px; color: #4a5a6a; margin-bottom: 8px; }
-    .api-hint a { color: #b8860b; text-decoration: none; }
-    .model-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-    .model-label { font-size: 11px; color: #5a6a7a; white-space: nowrap; }
-    .model-select { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #8a9aaa; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
-    .model-select:focus { border-color: #b8860b44; }
-    .input-row { display: flex; gap: 8px; align-items: flex-end; }
-    .input-box { flex: 1; background: #0f1923; border: 1px solid #1e2a3a; color: #d0c0a0; padding: 11px 14px; border-radius: 8px; font-size: 13.5px; font-family: 'Inter', sans-serif; resize: none; outline: none; line-height: 1.5; max-height: 120px; transition: border-color 0.15s; }
-    .input-box:focus { border-color: #b8860b55; }
-    .input-box::placeholder { color: #3a4a5a; }
-    .upload-btn { background: #0f1923; border: 1px solid #1e2a3a; color: #5a6a7a; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
-    .upload-btn:hover { color: #daa520; border-color: #b8860b44; }
-    .upload-btn.has-img { color: #daa520; border-color: #b8860b; background: #1a2535; }
-    .send-btn { background: linear-gradient(135deg, #b8860b, #daa520); border: none; color: #0d1117; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s; flex-shrink: 0; }
-    .send-btn:hover { opacity: 0.85; }
-    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .sources-bar { padding: 8px 20px; border-top: 1px solid #1a2030; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .sources-label { font-size: 10px; color: #3a4a5a; text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0; }
-    .source-link { font-size: 11px; color: #5a6a7a; text-decoration: none; padding: 3px 8px; border: 1px solid #1e2a3a; border-radius: 4px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
-    .source-link:hover { color: #daa520; border-color: #b8860b44; }
-    .source-free { font-size: 9px; background: #1a3a1a; color: #5a8a5a; padding: 1px 4px; border-radius: 3px; }
-    .hidden { display: none; }
-    .deep-progress { background: #0f1923; border: 1px solid #b8860b44; color: #daa520; padding: 10px 16px; border-radius: 10px; font-size: 13px; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-    .msg-bubble .msg-heading-lg { font-family: "EB Garamond", serif; font-size: 17px; color: #c8a840; margin: 12px 0 6px; display: block; border-bottom: 1px solid #1e2a3a; padding-bottom: 4px; }
-    hr { border: none; border-top: 1px solid #1e2a3a; margin: 16px 0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d1117;color:#e6d9c0;font-family:'Inter',sans-serif;min-height:100vh}
+    .app{display:flex;flex-direction:column;height:100vh;max-width:900px;margin:0 auto}
+    /* HEADER */
+    .header{padding:14px 18px 10px;border-bottom:1px solid #1e2a3a;background:#0d1117;position:sticky;top:0;z-index:10}
+    .header-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .logo{width:38px;height:38px;background:linear-gradient(135deg,#b8860b,#daa520);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 0 12px rgba(184,134,11,.3)}
+    .title{font-family:'EB Garamond',serif;font-size:21px;font-weight:600;color:#daa520}
+    .sub{font-size:10px;color:#6a7a8a;text-transform:uppercase;letter-spacing:.08em}
+    .hdr-right{margin-left:auto;display:flex;gap:6px}
+    .hbtn{background:none;border:1px solid #1e2a3a;color:#5a6a7a;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Inter',sans-serif;transition:all .15s}
+    .hbtn:hover{color:#daa520;border-color:#b8860b44}
+    .hbtn.active{color:#daa520;border-color:#b8860b;background:#1a2535}
+    .tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{background:none;border:1px solid transparent;color:#5a6a7a;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;transition:all .15s;font-family:'Inter',sans-serif}
+    .tab:hover{color:#c0a060;border-color:#2a3a4a}
+    .tab.active{background:#1a2535;border-color:#b8860b;color:#daa520}
+    /* HISTORY */
+    .hist-panel{border-bottom:1px solid #1e2a3a;background:#0a0f17;max-height:240px;overflow-y:auto;display:none}
+    .hist-panel.show{display:block}
+    .hist-hdr{padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1a2030}
+    .hist-lbl{font-size:10px;color:#6a7a8a;text-transform:uppercase;letter-spacing:.08em}
+    .hist-clr{background:none;border:none;color:#5a3a3a;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
+    .hist-clr:hover{color:#c05050}
+    .hist-list{padding:6px 10px;display:flex;flex-direction:column;gap:3px}
+    .hist-empty{padding:16px;text-align:center;color:#3a4a5a;font-size:12px}
+    .hist-item{padding:7px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+    .hist-item:hover{background:#0f1923;border-color:#1e2a3a}
+    .hist-q{font-size:12px;color:#b0a070;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+    .hist-meta{display:flex;gap:6px;font-size:10px}
+    .hist-tag{background:#1a2535;color:#6a8aaa;padding:1px 5px;border-radius:3px}
+    .hist-time{color:#3a4a5a}
+    /* BODY */
+    .body{display:flex;flex-direction:column;flex:1;overflow:hidden}
+    .doc-panel{background:#0f1923;border-bottom:1px solid #1e2a3a;padding:10px 16px;display:none}
+    .doc-panel.show{display:block}
+    .doc-lbl{font-size:10px;color:#6a7a8a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .doc-ta{width:100%;background:#0d1117;border:1px solid #1e2a3a;color:#c0b090;padding:8px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;resize:vertical;min-height:70px;max-height:140px;outline:none;line-height:1.5}
+    .doc-ta:focus{border-color:#b8860b44}
+    .doc-ta::placeholder{color:#3a4a5a}
+    .img-bar{background:#0a1220;border-bottom:1px solid #1e2a3a;padding:8px 16px;display:none;align-items:center;gap:10px}
+    .img-bar.show{display:flex}
+    .img-thumb{width:42px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #b8860b55}
+    .img-info{flex:1}
+    .img-name{font-size:11px;color:#8a9aaa}
+    .img-hint{font-size:10px;color:#4a5a6a;margin-top:2px}
+    .img-rm{background:none;border:none;color:#6a3a3a;font-size:18px;cursor:pointer;padding:2px 6px}
+    /* MESSAGES */
+    .msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:#1e2a3a transparent}
+    .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 16px;gap:16px}
+    .empty-icon{font-size:44px;opacity:.6}
+    .empty-title{font-family:'EB Garamond',serif;font-size:19px;color:#b0a080}
+    .empty-desc{font-size:12px;color:#4a5a6a;max-width:320px;line-height:1.6}
+    .quick-list{display:flex;flex-direction:column;gap:7px;width:100%;max-width:460px}
+    .qbtn{background:#0f1923;border:1px solid #1e2a3a;color:#8a9aaa;padding:9px 13px;border-radius:7px;cursor:pointer;font-size:12px;text-align:left;transition:all .15s;font-family:'Inter',sans-serif;line-height:1.4;width:100%}
+    .qbtn:hover{border-color:#b8860b44;color:#c0a060;background:#111b27}
+    .msg-row{display:flex;gap:8px;align-items:flex-start}
+    .msg-row.user{justify-content:flex-end}
+    .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px}
+    .avatar.ai{background:#1a2535;border:1px solid #b8860b55}
+    .avatar.usr{background:#1a2a1a;border:1px solid #2a5a2a55}
+    .bubble{max-width:82%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.7}
+    .bubble.user{background:#111b11;border:1px solid #2a4a2a;color:#a0c0a0;border-bottom-right-radius:3px}
+    .bubble.ai{background:#0f1923;border:1px solid #1e2a3a;color:#d0c0a0;border-bottom-left-radius:3px}
+    .bubble p{margin-bottom:5px}
+    .bubble p:last-child{margin-bottom:0}
+    .bubble li{margin-left:16px;margin-bottom:3px}
+    .bubble strong{color:#daa520;font-weight:600}
+    .bubble h2{font-family:'EB Garamond',serif;font-size:17px;color:#c8a840;margin:10px 0 5px;border-bottom:1px solid #1e2a3a;padding-bottom:3px}
+    .bubble h3{font-size:12px;font-weight:600;color:#a09060;margin:8px 0 3px;text-transform:uppercase;letter-spacing:.06em}
+    .bubble hr{border:none;border-top:1px solid #1e2a3a;margin:12px 0}
+    .sec{display:inline-block;background:#1a2535;border:1px solid #b8860b55;color:#daa520;padding:1px 5px;border-radius:4px;font-size:11px;font-weight:500}
+    .warn{margin-top:8px;padding:7px 10px;background:#1a1500;border-left:3px solid #b8860b;border-radius:0 5px 5px 0;font-size:11.5px;color:#9a8050}
+    .msg-img{max-width:180px;border-radius:5px;border:1px solid #2a3a4a;margin-bottom:6px;display:block}
+    .dots-row{display:flex;align-items:center;gap:8px}
+    .dots{display:flex;gap:4px;padding:10px 14px;background:#0f1923;border:1px solid #1e2a3a;border-radius:10px;border-bottom-left-radius:3px}
+    .dot{width:5px;height:5px;background:#b8860b;border-radius:50%;animation:bonce 1.2s infinite}
+    .dot:nth-child(2){animation-delay:.2s}
+    .dot:nth-child(3){animation-delay:.4s}
+    @keyframes bonce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+    .deep-prog{background:#0f1923;border:1px solid #b8860b44;color:#daa520;padding:10px 14px;border-radius:10px;font-size:12px;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    /* INPUT */
+    .input-area{padding:10px 16px 14px;border-top:1px solid #1e2a3a;background:#0d1117}
+    .key-row{display:flex;gap:8px;margin-bottom:5px;align-items:center}
+    .key-lbl{font-size:11px;color:#5a6a7a;white-space:nowrap}
+    .key-inp{flex:1;background:#0f1923;border:1px solid #1e2a3a;color:#8a9aaa;padding:6px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;outline:none}
+    .key-inp:focus{border-color:#b8860b44}
+    .key-inp::placeholder{color:#3a4a5a}
+    .key-hint{font-size:10px;color:#4a5a6a;margin-bottom:6px}
+    .key-hint a{color:#b8860b;text-decoration:none}
+    .model-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+    .model-lbl{font-size:11px;color:#5a6a7a;white-space:nowrap}
+    .model-sel{flex:1;background:#0f1923;border:1px solid #1e2a3a;color:#8a9aaa;padding:6px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;outline:none}
+    .inp-row{display:flex;gap:8px;align-items:flex-end}
+    .inp{flex:1;background:#0f1923;border:1px solid #1e2a3a;color:#d0c0a0;padding:10px 12px;border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5;max-height:100px;transition:border-color .15s}
+    .inp:focus{border-color:#b8860b55}
+    .inp::placeholder{color:#3a4a5a}
+    .upbtn{background:#0f1923;border:1px solid #1e2a3a;color:#5a6a7a;width:38px;height:38px;border-radius:8px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+    .upbtn:hover{color:#daa520;border-color:#b8860b44}
+    .upbtn.has{color:#daa520;border-color:#b8860b;background:#1a2535}
+    .send{background:linear-gradient(135deg,#b8860b,#daa520);border:none;color:#0d1117;width:38px;height:38px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0}
+    .send:hover{opacity:.85}
+    .send:disabled{opacity:.4;cursor:not-allowed}
+    /* SOURCES */
+    .src-bar{padding:6px 16px;border-top:1px solid #1a2030;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .src-lbl{font-size:10px;color:#3a4a5a;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
+    .src-a{font-size:11px;color:#5a6a7a;text-decoration:none;padding:2px 7px;border:1px solid #1e2a3a;border-radius:4px;transition:all .15s;display:inline-flex;align-items:center;gap:3px}
+    .src-a:hover{color:#daa520;border-color:#b8860b44}
+    .src-free{font-size:9px;background:#1a3a1a;color:#5a8a5a;padding:1px 4px;border-radius:3px}
+    #file-inp{display:none}
   </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useRef, useEffect } = React;
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">⚖️</div>
+      <div>
+        <div class="title">VakilAI</div>
+        <div class="sub">Indian Legal Research Assistant</div>
+      </div>
+      <div class="hdr-right">
+        <button class="hbtn" id="hist-btn" onclick="toggleHist()">📜 History</button>
+        <button class="hbtn" id="clear-btn" onclick="clearChat()" style="display:none">Clear</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('research')">⚖️ Research</button>
+      <button class="tab" onclick="switchTab('deep')">🔍 Deep Research</button>
+      <button class="tab" onclick="switchTab('analyze')">📄 Analyze</button>
+      <button class="tab" onclick="switchTab('draft')">✍️ Draft</button>
+      <button class="tab" onclick="switchTab('explain')">💡 Explain</button>
+    </div>
+  </div>
 
-const SYSTEM_PROMPT = `You are VakilAI — an expert Indian legal research assistant with deep knowledge of:
-- Indian Constitution, IPC, CrPC, CPC, IEA, and all major Central Acts
-- Supreme Court and High Court judgments and citations
-- Bare Act sections with accurate numbering
-- Legal terminology in both English and Hindi
+  <div class="hist-panel" id="hist-panel">
+    <div class="hist-hdr">
+      <span class="hist-lbl">Recent Questions</span>
+      <button class="hist-clr" onclick="clearHistory()">🗑 Clear all</button>
+    </div>
+    <div id="hist-content"></div>
+  </div>
 
-STRICT RULES:
-1. NEVER hallucinate section numbers or case citations. If unsure, say "Please verify on SCC Online / Manupatra."
-2. Always cite real sections: e.g., "Section 420 IPC", "Article 21 of the Constitution"
-3. Write in a warm, clear, human tone — like a senior advocate explaining to a junior
-4. Structure answers with: Legal Position → Relevant Sections → Key Cases → Practical Advice
-5. If the question is in Hindi or Hinglish, respond in Hinglish
-6. Always end with a "⚠️ Verify on:" recommendation pointing to SCC Online, Manupatra, or Indian Kanoon`;
+  <div class="body">
+    <div class="doc-panel" id="doc-panel">
+      <div class="doc-lbl">Paste Judgment / Document here</div>
+      <textarea class="doc-ta" id="doc-ta" placeholder="Paste the full text of a judgment, legal notice, FIR, or any legal document..."></textarea>
+    </div>
 
-const FREE_MODELS = [
-  { id: "openrouter/free",                              label: "🎲 Auto Best Free Model ⭐" },
-  { id: "deepseek/deepseek-r1:free",                   label: "DeepSeek R1 (Free)" },
-  { id: "deepseek/deepseek-chat-v3-0324:free",         label: "DeepSeek V3 (Free)" },
-  { id: "meta-llama/llama-3.3-70b-instruct:free",      label: "Llama 3.3 70B (Free)" },
-  { id: "meta-llama/llama-4-maverick:free",             label: "Llama 4 Maverick (Free)" },
-  { id: "google/gemma-3-12b-it:free",                  label: "Gemma 3 12B (Free)" },
-  { id: "mistralai/mistral-small:free",                 label: "Mistral Small (Free)" },
-  { id: "qwen/qwen3-coder:free",                        label: "Qwen3 Coder (Free)" },
-];
+    <div class="img-bar" id="img-bar">
+      <img class="img-thumb" id="img-thumb" src="" alt="preview"/>
+      <div class="img-info">
+        <div class="img-name" id="img-name"></div>
+        <div class="img-hint">Image ready — type a question or send to analyze</div>
+      </div>
+      <button class="img-rm" onclick="removeImage()">✕</button>
+    </div>
 
-const TABS = [
-  { id: "research",  label: "⚖️ Research",       icon: "⚖️", desc: "Ask any legal question" },
-  { id: "deep",      label: "🔍 Deep Research",   icon: "🔍", desc: "Detailed legal report with case laws" },
-  { id: "analyze",   label: "📄 Analyze",         icon: "📄", desc: "Paste judgment or document" },
-  { id: "draft",     label: "✍️ Draft",           icon: "✍️", desc: "Draft legal documents" },
-  { id: "explain",   label: "💡 Explain",         icon: "💡", desc: "Explain legal concepts" },
-];
+    <div class="msgs" id="msgs"></div>
 
-const QUICK_PROMPTS = {
+    <div class="input-area">
+      <div class="key-row">
+        <span class="key-lbl">🔑 OpenRouter Key:</span>
+        <input class="key-inp" id="api-key" type="password" placeholder="sk-or-... (free from openrouter.ai)" oninput="saveKey(this.value)"/>
+      </div>
+      <div class="key-hint">Free key: <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
+      <div class="model-row">
+        <span class="model-lbl">🤖 Model:</span>
+        <select class="model-sel" id="model-sel" onchange="saveModel(this.value)">
+          <option value="openrouter/auto">🎲 Auto Best Free Model ⭐</option>
+          <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free)</option>
+          <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free)</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free)</option>
+          <option value="meta-llama/llama-4-maverick:free">Llama 4 Maverick (Free)</option>
+          <option value="google/gemma-3-12b-it:free">Gemma 3 12B (Free)</option>
+          <option value="mistralai/mistral-small:free">Mistral Small (Free)</option>
+        </select>
+      </div>
+      <div class="inp-row">
+        <button class="upbtn" id="up-btn" onclick="document.getElementById('file-inp').click()" title="Upload image">📎</button>
+        <textarea class="inp" id="inp" rows="1" placeholder="e.g. What are the elements of Section 302 IPC?" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+        <button class="send" id="send-btn" onclick="handleSend()">▶</button>
+      </div>
+    </div>
+
+    <div class="src-bar">
+      <span class="src-lbl">Verify on</span>
+      <a class="src-a" href="https://www.scconline.com" target="_blank">SCC Online</a>
+      <a class="src-a" href="https://www.manupatrafast.com" target="_blank">Manupatra</a>
+      <a class="src-a" href="https://indiankanoon.org" target="_blank">Indian Kanoon <span class="src-free">FREE</span></a>
+    </div>
+  </div>
+</div>
+<input type="file" id="file-inp" accept="image/*" onchange="handleFile(event)"/>
+
+<script>
+const SYSTEM = `You are VakilAI — an expert Indian legal research assistant with deep knowledge of Indian Constitution, IPC, CrPC, CPC, IEA, and all major Central Acts. STRICT RULES: 1. NEVER hallucinate section numbers or case citations. 2. Always cite real sections like "Section 420 IPC", "Article 21". 3. Write in warm human tone like a senior advocate. 4. Structure: Legal Position → Relevant Sections → Key Cases → Practical Advice. 5. Respond in Hinglish if question is in Hindi/Hinglish. 6. Always end with ⚠️ Verify on: SCC Online / Manupatra / Indian Kanoon.`;
+
+const QUICK = {
   research: ["What are the essential ingredients of Section 420 IPC?","Explain anticipatory bail under Section 438 CrPC","What are fundamental rights under Part III of the Constitution?","How is divorce filed under Hindu Marriage Act?"],
-  deep:     ["Deep research on Dowry Prohibition Act — all sections, cases, penalties","Comprehensive report on Right to Education Act 2009","Complete analysis of POCSO Act — provisions, punishment, landmark cases","Deep research on Cyber Crime laws in India — IT Act, IPC sections, recent cases"],
-  analyze:  ["Summarize this judgment and identify key holdings","What ratio decidendi is established in this case?","List all sections cited in this order","Is this judgment still good law?"],
-  draft:    ["Draft a legal notice for cheque bounce under Section 138 NI Act","Draft a plaint for recovery of money","Draft a reply to a legal notice","Draft a consumer complaint under Consumer Protection Act 2019"],
-  explain:  ["Explain res judicata in simple terms","What is the difference between cognizable and non-cognizable offence?","Explain the concept of natural justice","What is a Writ of Mandamus?"],
+  deep: ["Deep research on Dowry Prohibition Act — all sections, cases, penalties","Comprehensive report on Right to Education Act 2009","Complete analysis of POCSO Act — provisions, punishment, landmark cases","Deep research on Cyber Crime laws in India — IT Act sections, recent cases"],
+  analyze: ["Summarize this judgment and identify key holdings","What ratio decidendi is established in this case?","List all sections cited in this order","Is this judgment still good law?"],
+  draft: ["Draft a legal notice for cheque bounce under Section 138 NI Act","Draft a plaint for recovery of money","Draft a reply to a legal notice","Draft a consumer complaint under Consumer Protection Act 2019"],
+  explain: ["Explain res judicata in simple terms","What is the difference between cognizable and non-cognizable offence?","Explain the concept of natural justice","What is a Writ of Mandamus?"]
 };
 
-const SOURCES = [
-  { name: "SCC Online",    url: "https://www.scconline.com" },
-  { name: "Manupatra",     url: "https://www.manupatrafast.com" },
-  { name: "Indian Kanoon", url: "https://indiankanoon.org", note: "FREE" },
-];
+let activeTab = 'research';
+let messages = {research:[],deep:[],analyze:[],draft:[],explain:[]};
+let history = [];
+let imageData = null;
+let loading = false;
+
+// Init
+window.onload = () => {
+  const k = localStorage.getItem('vakil_or_key') || '';
+  const m = localStorage.getItem('vakil_or_model') || 'openrouter/auto';
+  document.getElementById('api-key').value = k;
+  document.getElementById('model-sel').value = m;
+  history = JSON.parse(localStorage.getItem('vakil_history') || '[]');
+  renderMessages();
+  renderHistory();
+};
+
+function saveKey(v){ localStorage.setItem('vakil_or_key', v); }
+function saveModel(v){ localStorage.setItem('vakil_or_model', v); }
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['research','deep','analyze','draft','explain'][i]===tab));
+  document.getElementById('doc-panel').classList.toggle('show', tab==='analyze');
+  const inp = document.getElementById('inp');
+  inp.placeholder = tab==='research'?"e.g. What are the elements of Section 302 IPC?":tab==='deep'?"e.g. Deep research on POCSO Act...":tab==='analyze'?"Ask about the document above...":tab==='draft'?"e.g. Draft a legal notice for unpaid dues...":"e.g. Explain what is Mens Rea in simple words...";
+  renderMessages();
+}
+
+function toggleHist() {
+  const p = document.getElementById('hist-panel');
+  const btn = document.getElementById('hist-btn');
+  p.classList.toggle('show');
+  btn.classList.toggle('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  const c = document.getElementById('hist-content');
+  if (!history.length) { c.innerHTML = '<div class="hist-empty">No history yet.</div>'; return; }
+  c.innerHTML = '<div class="hist-list">' + history.map(h => `
+    <div class="hist-item" onclick="loadHistory('${h.id}')">
+      <div class="hist-q">${esc(h.q)}</div>
+      <div class="hist-meta"><span class="hist-tag">${h.tab}</span><span class="hist-time">${timeAgo(h.ts)}</span></div>
+    </div>`).join('') + '</div>';
+}
+
+function loadHistory(id) {
+  const item = history.find(h=>h.id==id);
+  if (!item) return;
+  switchTab(item.tab);
+  document.getElementById('inp').value = item.q;
+  document.getElementById('hist-panel').classList.remove('show');
+  document.getElementById('hist-btn').classList.remove('active');
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.removeItem('vakil_history');
+  renderHistory();
+}
+
+function pushHistory(q, tab) {
+  history.unshift({id:Date.now(), q:q.slice(0,120), tab, ts:Date.now()});
+  history = history.slice(0,50);
+  localStorage.setItem('vakil_history', JSON.stringify(history));
+}
+
+function clearChat() {
+  messages[activeTab] = [];
+  imageData = null;
+  document.getElementById('img-bar').classList.remove('show');
+  document.getElementById('clear-btn').style.display='none';
+  renderMessages();
+}
+
+function removeImage() {
+  imageData = null;
+  document.getElementById('img-bar').classList.remove('show');
+}
+
+function handleFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    imageData = { base64: ev.target.result.split(',')[1], type: f.type||'image/jpeg', url: ev.target.result, name: f.name };
+    document.getElementById('img-thumb').src = ev.target.result;
+    document.getElementById('img-name').textContent = f.name;
+    document.getElementById('img-bar').classList.add('show');
+    document.getElementById('up-btn').classList.add('has');
+  };
+  r.readAsDataURL(f);
+  e.target.value='';
+}
+
+function autoResize(el) {
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,100)+'px';
+}
+
+function handleKey(e) {
+  if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); handleSend(); }
+}
+
+function handleSend() {
+  if (loading) return;
+  activeTab==='deep' ? sendDeep() : sendNormal();
+}
+
+async function sendNormal() {
+  const txt = document.getElementById('inp').value.trim();
+  if (!txt && !imageData) return;
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { alert('Please enter your OpenRouter API key.'); return; }
+  const model = document.getElementById('model-sel').value;
+
+  const display = txt || '📷 Analyzing image...';
+  pushHistory(display, activeTab);
+
+  const docTa = document.getElementById('doc-ta').value;
+  const ctx = activeTab==='analyze' && docTa ? `[DOCUMENT]\n${docTa}\n\n[QUESTION]\n${txt}` : `[MODE:${activeTab.toUpperCase()}]\n${txt||'Analyze this image.'}`;
+
+  let rawContent;
+  if (imageData) {
+    rawContent = [{type:'image_url',image_url:{url:`data:${imageData.type};base64,${imageData.base64}`}},{type:'text',text:ctx}];
+  } else {
+    rawContent = ctx;
+  }
+
+  messages[activeTab].push({role:'user', content:display, raw:rawContent, img:imageData?.url});
+  imageData=null;
+  document.getElementById('img-bar').classList.remove('show');
+  document.getElementById('up-btn').classList.remove('has');
+  document.getElementById('inp').value='';
+  document.getElementById('inp').style.height='auto';
+  loading=true;
+  renderMessages();
+  showTyping();
+
+  try {
+    const apiMsgs = [{role:'system',content:SYSTEM},...messages[activeTab].map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.raw||m.content}))];
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`,'HTTP-Referer':location.href,'X-Title':'VakilAI'},
+      body:JSON.stringify({model,messages:apiMsgs,max_tokens:1500,temperature:0.3})
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const txt2 = data.choices?.[0]?.message?.content||'No response.';
+    messages[activeTab].push({role:'assistant',content:txt2});
+  } catch(e) {
+    messages[activeTab].push({role:'assistant',content:`⚠️ Error: ${e.message}`});
+  }
+  loading=false;
+  renderMessages();
+}
+
+async function sendDeep() {
+  const txt = document.getElementById('inp').value.trim();
+  if (!txt) return;
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { alert('Please enter your OpenRouter API key.'); return; }
+  const model = document.getElementById('model-sel').value;
+
+  pushHistory(txt, 'deep');
+  messages['deep'].push({role:'user',content:txt});
+  document.getElementById('inp').value='';
+  document.getElementById('inp').style.height='auto';
+  loading=true;
+  renderMessages();
+
+  const steps = [
+    {p:`Deep legal research on: "${txt}"\n\nSTEP 1 — OVERVIEW & INTRODUCTION:\nWrite a detailed introduction about this Indian law/topic. Cover: what it is, which Act governs it, year of enactment, objective, and why it matters for students and practitioners. Write minimum 3 paragraphs.`, lbl:'📖 Researching overview...'},
+    {p:`Deep legal research on: "${txt}"\n\nSTEP 2 — KEY SECTIONS & PROVISIONS:\nList ALL important sections. For each write:\n**Section [X] — [Title]**\n[Simple explanation in 2-3 lines]\n\nCover minimum 8 sections. Be accurate with section numbers.`, lbl:'📋 Extracting key sections...'},
+    {p:`Deep legal research on: "${txt}"\n\nSTEP 3 — LANDMARK CASES:\nList 5-6 important Supreme Court/High Court cases. Format:\n**[Case Name] v. [Case Name] ([Year])**\n- Court: [court name]\n- Held: [key holding in 2 lines]\n- Significance: [why important]\n\nOnly mention cases you are confident about.`, lbl:'⚖️ Finding landmark cases...'},
+    {p:`Deep legal research on: "${txt}"\n\nSTEP 4 — PENALTIES, REMEDIES & PROCEDURE:\nExplain: punishment/imprisonment/fine, who can file complaint, which court has jurisdiction, limitation period, bail provisions, and available remedies.`, lbl:'🔒 Analyzing penalties & remedies...'},
+    {p:`Deep legal research on: "${txt}"\n\nSTEP 5 — STUDENT EXAM SUMMARY:\nCreate exam-ready notes:\n1. Key Definitions\n2. Essential Elements/Ingredients  \n3. Important Sections (quick list)\n4. Top 3 Landmark Cases\n5. Recent Amendments (if any)\n6. 5 Common Exam Questions with brief answers\n\n⚠️ Verify on: SCC Online / Manupatra / Indian Kanoon`, lbl:'📝 Creating student summary...'}
+  ];
+
+  let report = '';
+  for (let i=0; i<steps.length; i++) {
+    showProgress(steps[i].lbl);
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`,'HTTP-Referer':location.href,'X-Title':'VakilAI'},
+        body:JSON.stringify({model, messages:[{role:'system',content:'You are VakilAI, expert Indian legal research assistant. Be thorough, accurate, and student-friendly. Use proper formatting with **bold** for headings.'},{role:'user',content:steps[i].p}],max_tokens:1500,temperature:0.2})
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const part = data.choices?.[0]?.message?.content||'';
+      report += (i===0?'':'\n\n---\n\n') + part;
+      messages['deep'] = messages['deep'].filter(m=>m.role!=='assistant'||!m._prog);
+      messages['deep'].push({role:'assistant',content:report+(i<steps.length-1?'\n\n⏳ *Research in progress...*':''),_prog:i<steps.length-1});
+      renderMessages();
+    } catch(e) {
+      report += `\n\n⚠️ Step ${i+1} error: ${e.message}`;
+    }
+  }
+  loading=false;
+  messages['deep'] = messages['deep'].filter(m=>!m._prog);
+  messages['deep'].push({role:'assistant',content:report});
+  renderMessages();
+}
+
+function showTyping() {
+  const msgs = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className='dots-row'; d.id='typing';
+  d.innerHTML='<div class="avatar ai">⚖️</div><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showProgress(txt) {
+  let el = document.getElementById('prog-el');
+  if (!el) {
+    const msgs = document.getElementById('msgs');
+    const row = document.createElement('div');
+    row.className='dots-row'; row.id='prog-row';
+    row.innerHTML='<div class="avatar ai">⚖️</div><div class="deep-prog" id="prog-el"></div>';
+    msgs.appendChild(row);
+  }
+  document.getElementById('prog-el').textContent = txt;
+  document.getElementById('msgs').scrollTop=99999;
+}
+
+function renderMessages() {
+  const msgs = document.getElementById('msgs');
+  const cur = messages[activeTab];
+  document.getElementById('clear-btn').style.display = cur.length?'block':'none';
+
+  // Remove typing/progress indicators
+  ['typing','prog-row'].forEach(id=>{ const el=document.getElementById(id); if(el) el.remove(); });
+
+  if (!cur.length) {
+    msgs.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${activeTab==='research'?'⚖️':activeTab==='deep'?'🔍':activeTab==='analyze'?'📄':activeTab==='draft'?'✍️':'💡'}</div>
+        <div class="empty-title">${activeTab==='research'?'Ask any Indian legal question':activeTab==='deep'?'Deep Research — Full Legal Report':activeTab==='analyze'?'Analyze a judgment or document':activeTab==='draft'?'Draft legal documents':'Get concepts explained clearly'}</div>
+        <div class="empty-desc">${activeTab==='deep'?'AI will research in 5 steps and generate a complete structured report with sections, cases, penalties, and student summary.':'Ask any question — powered by free AI models via OpenRouter.'}</div>
+        <div class="quick-list">${(QUICK[activeTab]||[]).map(q=>`<button class="qbtn" onclick="quickSend(this.textContent)">${q}</button>`).join('')}</div>
+      </div>`;
+    return;
+  }
+
+  msgs.innerHTML = cur.map(m => `
+    <div class="msg-row ${m.role==='user'?'user':''}">
+      ${m.role==='assistant'?'<div class="avatar ai">⚖️</div>':''}
+      <div class="bubble ${m.role==='user'?'user':'ai'}">
+        ${m.img?`<img class="msg-img" src="${m.img}" alt="uploaded"/>`:'' }
+        ${m.role==='user'?`<p>${esc(m.content)}</p>`:formatAI(m.content)}
+      </div>
+      ${m.role==='user'?'<div class="avatar usr">👤</div>':''}
+    </div>`).join('');
+
+  if (loading) {
+    if (activeTab==='deep') {
+      const row = document.createElement('div');
+      row.className='dots-row'; row.id='prog-row';
+      row.innerHTML='<div class="avatar ai">⚖️</div><div class="deep-prog" id="prog-el">Starting research...</div>';
+      msgs.appendChild(row);
+    } else {
+      const d = document.createElement('div');
+      d.className='dots-row'; d.id='typing';
+      d.innerHTML='<div class="avatar ai">⚖️</div><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+      msgs.appendChild(d);
+    }
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function quickSend(txt) {
+  document.getElementById('inp').value=txt;
+  handleSend();
+}
+
+function formatAI(text) {
+  const lines = text.split('\n');
+  let html='', inList=false;
+  for (const line of lines) {
+    let l = line
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/(Section \d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s*(?:IPC|CrPC|CPC|IEA|NI Act|HMA|IT Act)?)/g,'<span class="sec">$1</span>')
+      .replace(/(Article \d+[A-Z]?)/g,'<span class="sec">$1</span>')
+      .replace(/(Order [IVXLC]+ Rule \d+)/g,'<span class="sec">$1</span>');
+    if (line.startsWith('---')) { if(inList){html+='</ul>';inList=false;} html+='<hr>'; }
+    else if (line.startsWith('## ')) { if(inList){html+='</ul>';inList=false;} html+=`<h2>${l.replace(/##\s*/,'')}</h2>`; }
+    else if (line.startsWith('### ')) { if(inList){html+='</ul>';inList=false;} html+=`<h3>${l.replace(/###\s*/,'')}</h3>`; }
+    else if (line.startsWith('# ')) { if(inList){html+='</ul>';inList=false;} html+=`<h2>${l.replace(/#\s*/,'')}</h2>`; }
+    else if (line.startsWith('⚠️')) { if(inList){html+='</ul>';inList=false;} html+=`<div class="warn">${l}</div>`; }
+    else if (line.startsWith('- ')||line.startsWith('• ')||/^\d+\./.test(line)) { if(!inList){html+='<ul>';inList=true;} html+=`<li>${l.replace(/^[-•]\s*/,'').replace(/^\d+\.\s*/,'')}</li>`; }
+    else if (line.trim()==='') { if(inList){html+='</ul>';inList=false;} html+='<br>'; }
+    else { if(inList){html+='</ul>';inList=false;} html+=`<p>${l}</p>`; }
+  }
+  if(inList) html+='</ul>';
+  return html;
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function timeAgo(ts) {
-  const d = Date.now() - ts;
-  if (d < 60000) return "just now";
-  if (d < 3600000) return Math.floor(d/60000) + "m ago";
-  if (d < 86400000) return Math.floor(d/3600000) + "h ago";
-  return Math.floor(d/86400000) + "d ago";
+  const d=Date.now()-ts;
+  if(d<60000) return 'just now';
+  if(d<3600000) return Math.floor(d/60000)+'m ago';
+  if(d<86400000) return Math.floor(d/3600000)+'h ago';
+  return Math.floor(d/86400000)+'d ago';
 }
-
-function App() {
-  const [activeTab, setActiveTab] = useState("research");
-  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_or_key") || "");
-  const [model,     setModel]     = useState(() => localStorage.getItem("vakil_or_model") || FREE_MODELS[0].id);
-  const [messages,  setMessages]  = useState({ research:[], deep:[], analyze:[], draft:[], explain:[] });
-  const [deepLoading, setDeepLoading] = useState(false);
-  const [deepProgress, setDeepProgress] = useState("");
-  const [input,     setInput]     = useState("");
-  const [loading,   setLoading]   = useState(false);
-  const [pastedDoc, setPastedDoc] = useState("");
-  const [imageData, setImageData] = useState(null);
-  const [showHist,  setShowHist]  = useState(false);
-  const [history,   setHistory]   = useState(() => { try { return JSON.parse(localStorage.getItem("vakil_history")||"[]"); } catch { return []; } });
-
-  const bottomRef = useRef(null);
-  const taRef     = useRef(null);
-  const fileRef   = useRef(null);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, loading]);
-
-  function saveApiKey(val) { setApiKey(val); localStorage.setItem("vakil_or_key", val); }
-  function saveModel(val)  { setModel(val);  localStorage.setItem("vakil_or_model", val); }
-
-  function pushHistory(q, tab) {
-    const entry = { id: Date.now(), question: q.slice(0,120), tab, ts: Date.now() };
-    const updated = [entry, ...history].slice(0, 50);
-    setHistory(updated);
-    localStorage.setItem("vakil_history", JSON.stringify(updated));
-  }
-
-  function processFile(file) {
-    const reader = new FileReader();
-    reader.onload = ev => setImageData({ base64: ev.target.result.split(",")[1], mediaType: file.type||"image/jpeg", previewUrl: ev.target.result, name: file.name });
-    reader.readAsDataURL(file);
-  }
-
-  const cur = messages[activeTab];
-
-  async function sendDeepResearch(overrideInput) {
-    const userText = (overrideInput || input).trim();
-    if (!userText) return;
-    if (!apiKey.trim()) { alert("Please enter your OpenRouter API key.\nGet free key at: openrouter.ai"); return; }
-
-    pushHistory(userText, "deep");
-    const newMsg = { role: "user", content: userText };
-    const updated = [...messages["deep"], newMsg];
-    setMessages(prev => ({ ...prev, deep: updated }));
-    setInput(""); setDeepLoading(true);
-    if (taRef.current) taRef.current.style.height = "auto";
-
-    const steps = [
-      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
-
-STEP 1 — OVERVIEW:
-Write a clear introduction explaining this legal topic in India. Cover: what it is, which law governs it, when it was enacted, and why it matters. Write in structured paragraphs.`, label: "📖 Researching overview..." },
-      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
-
-STEP 2 — KEY SECTIONS & PROVISIONS:
-List ALL important sections of the relevant Act(s). For each section, write: section number, title, and what it says in simple language. Use format:
-**Section X — Title**
-[explanation]
-
-Cover at least 8-10 sections.`, label: "📋 Extracting key sections..." },
-      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
-
-STEP 3 — LANDMARK CASES:
-List 5-8 important Supreme Court or High Court judgments related to this topic. For each case write:
-**Case Name v. Case Name (Year)**
-- Court:
-- Key Holding:
-- Significance:
-
-Only mention cases you are confident about. Add ⚠️ Verify on SCC Online if uncertain.`, label: "⚖️ Finding landmark cases..." },
-      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
-
-STEP 4 — PENALTIES & REMEDIES:
-Explain all punishments, penalties, fines, imprisonment terms, and legal remedies available under this law. Also explain: who can file a complaint, which court has jurisdiction, limitation period, and bail provisions if applicable.`, label: "🔒 Analyzing penalties & remedies..." },
-      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
-
-STEP 5 — STUDENT SUMMARY:
-Write a concise exam-ready summary covering:
-1. Key definitions
-2. Essential elements/ingredients
-3. Important sections (quick list)
-4. Top 3 landmark cases
-5. Common exam questions on this topic
-6. Recent amendments if any
-
-End with: ⚠️ Verify on: SCC Online / Manupatra / Indian Kanoon`, label: "📝 Creating student summary..." },
-    ];
-
-    let fullReport = "";
-
-    for (let i = 0; i < steps.length; i++) {
-      setDeepProgress(steps[i].label);
-      try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": \`Bearer \${apiKey.trim()}\`, "HTTP-Referer": window.location.href, "X-Title": "VakilAI" },
-          body: JSON.stringify({ model, messages: [{ role: "system", content: "You are VakilAI, an expert Indian legal research assistant. Be thorough, accurate, and student-friendly." }, { role: "user", content: steps[i].prompt }], max_tokens: 1500, temperature: 0.2 }),
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error.message);
-        const part = data.choices?.[0]?.message?.content || "";
-        fullReport += (i === 0 ? "" : "
-
----
-
-") + part;
-
-        // Update progressively
-        setMessages(prev => ({ ...prev, deep: [...updated, { role: "assistant", content: fullReport + (i < steps.length-1 ? "
-
-⏳ *Research in progress...*" : "") }] }));
-      } catch(e) {
-        fullReport += \`
-
-⚠️ Step \${i+1} error: \${e.message}\`;
-      }
-    }
-
-    setDeepLoading(false);
-    setDeepProgress("");
-    setMessages(prev => ({ ...prev, deep: [...updated, { role: "assistant", content: fullReport }] }));
-  }
-
-  async function sendMessage(overrideInput) {
-    const userText = (overrideInput || input).trim();
-    if (!userText && !imageData) return;
-    if (!apiKey.trim()) { alert("Please enter your OpenRouter API key.\nGet free key at: openrouter.ai"); return; }
-
-    const display = userText || "📷 Analyzing image...";
-    pushHistory(display, activeTab);
-
-    const contextText = activeTab === "analyze" && pastedDoc
-      ? `[DOCUMENT TO ANALYZE]\n${pastedDoc}\n\n[USER QUESTION]\n${userText}`
-      : `[MODE: ${activeTab.toUpperCase()}]\n${userText || "Analyze this legal document/image."}`;
-
-    // Build content for this message
-    let userContent;
-    if (imageData) {
-      userContent = [
-        { type: "image_url", image_url: { url: `data:${imageData.mediaType};base64,${imageData.base64}` } },
-        { type: "text", text: contextText }
-      ];
-    } else {
-      userContent = contextText;
-    }
-
-    const newMsg  = { role: "user", content: display, rawContent: userContent, imgPreview: imageData?.previewUrl };
-    const updated = [...cur, newMsg];
-    setMessages(prev => ({ ...prev, [activeTab]: updated }));
-    setInput(""); setImageData(null); setLoading(true);
-    if (taRef.current) taRef.current.style.height = "auto";
-
-    try {
-      const apiMessages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...updated.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.rawContent || m.content }))
-      ];
-
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey.trim()}`,
-          "HTTP-Referer": window.location.href,
-          "X-Title": "VakilAI"
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: apiMessages,
-          max_tokens: 1500,
-          temperature: 0.3,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-      const text = data.choices?.[0]?.message?.content || "No response received.";
-      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: text }] }));
-    } catch(e) {
-      setMessages(prev => ({ ...prev, [activeTab]: [...updated, { role: "assistant", content: `⚠️ Error: ${e.message}` }] }));
-    }
-    setLoading(false);
-  }
-
-  function handleKey(e) { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); activeTab==="deep" ? sendDeepResearch() : sendMessage(); } }
-
-  function fmt(text) {
-    return text.split("\n").map((line, i) => {
-      let f = line
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-        .replace(/(Section \d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s*(?:IPC|CrPC|CPC|IEA|NI Act|HMA|IT Act)?)/g, '<span class="section-badge">$1</span>')
-        .replace(/(Article \d+[A-Z]?)/g, '<span class="section-badge">$1</span>')
-        .replace(/(Order [IVXLC]+ Rule \d+)/g, '<span class="section-badge">$1</span>');
-      if (line.startsWith("⚠️"))   return React.createElement("p",    { key:i, className:"verify-note",    dangerouslySetInnerHTML:{__html:f} });
-      if (line.startsWith("## "))  return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/##\s*/,"")} });
-      if (line.startsWith("### ")) return React.createElement("span", { key:i, className:"msg-heading",    dangerouslySetInnerHTML:{__html:f.replace(/###\s*/,"")} });
-      if (line.startsWith("# "))   return React.createElement("span", { key:i, className:"msg-heading-lg", dangerouslySetInnerHTML:{__html:f.replace(/#\s*/,"")} });
-      if (line.startsWith("- ") || line.startsWith("• ") || /^\d+\./.test(line)) return React.createElement("li", { key:i, dangerouslySetInnerHTML:{__html:f.replace(/^[-•]\s*/,"").replace(/^\d+\.\s*/,"")} });
-      if (line.trim()==="") return React.createElement("br", { key:i });
-      return React.createElement("p", { key:i, dangerouslySetInnerHTML:{__html:f} });
-    });
-  }
-
-  return React.createElement(React.Fragment, null,
-    React.createElement("div", { className:"app" },
-
-      // HEADER
-      React.createElement("div", { className:"header" },
-        React.createElement("div", { className:"header-top" },
-          React.createElement("div", { className:"logo-seal" }, "⚖️"),
-          React.createElement("div", null,
-            React.createElement("div", { className:"header-title" }, "VakilAI"),
-            React.createElement("div", { className:"header-sub" }, "Indian Legal Research Assistant")
-          ),
-          React.createElement("div", { className:"header-right" },
-            React.createElement("button", { className:`hist-btn${showHist?" active":""}`, onClick:()=>setShowHist(v=>!v) },
-              "📜 History" + (history.length > 0 ? ` (${history.length})` : "")
-            ),
-            cur.length > 0 && React.createElement("button", { className:"clear-btn", onClick:()=>setMessages(p=>({...p,[activeTab]:[]})) }, "Clear")
-          )
-        ),
-        React.createElement("div", { className:"tabs" },
-          TABS.map(tab => React.createElement("button", { key:tab.id, className:`tab-btn${activeTab===tab.id?" active":""}`, onClick:()=>setActiveTab(tab.id) }, tab.label))
-        )
-      ),
-
-      // HISTORY
-      showHist && React.createElement("div", { className:"hist-panel" },
-        React.createElement("div", { className:"hist-panel-hdr" },
-          React.createElement("span", { className:"hist-panel-title" }, "Recent Questions"),
-          history.length > 0 && React.createElement("button", { className:"hist-clear-btn", onClick:()=>{ setHistory([]); localStorage.removeItem("vakil_history"); } }, "🗑 Clear all")
-        ),
-        history.length === 0
-          ? React.createElement("div", { className:"hist-empty" }, "No history yet.")
-          : React.createElement("div", { className:"hist-list" },
-              history.map(item => React.createElement("div", { key:item.id, className:"hist-item",
-                onClick:()=>{ setActiveTab(item.tab); setInput(item.question); setShowHist(false); setTimeout(()=>taRef.current?.focus(),100); } },
-                React.createElement("div", { className:"hist-item-q" }, item.question),
-                React.createElement("div", { className:"hist-item-meta" },
-                  React.createElement("span", { className:"hist-item-tab" }, item.tab),
-                  React.createElement("span", { className:"hist-item-time" }, timeAgo(item.ts))
-                )
-              ))
-            )
-      ),
-
-      // BODY
-      React.createElement("div", { className:"body" },
-
-        activeTab==="analyze" && React.createElement("div", { className:"doc-panel" },
-          React.createElement("div", { className:"doc-panel-label" }, "Paste Judgment / Document here"),
-          React.createElement("textarea", { className:"doc-textarea", placeholder:"Paste the full text of a judgment, legal notice, FIR, or any legal document...", value:pastedDoc, onChange:e=>setPastedDoc(e.target.value) })
-        ),
-
-        imageData && React.createElement("div", { className:"img-preview" },
-          React.createElement("img", { src:imageData.previewUrl, className:"img-thumb", alt:"preview" }),
-          React.createElement("div", { className:"img-info" },
-            React.createElement("div", { className:"img-name" }, imageData.name),
-            React.createElement("div", { className:"img-hint" }, "Image ready — type a question or send to analyze")
-          ),
-          React.createElement("button", { className:"img-rm", onClick:()=>setImageData(null) }, "✕")
-        ),
-
-        // MESSAGES
-        React.createElement("div", { className:"messages" },
-          cur.length === 0
-            ? React.createElement("div", { className:"empty-state" },
-                React.createElement("div", { className:"empty-icon" }, TABS.find(t=>t.id===activeTab)?.icon),
-                React.createElement("div", { className:"empty-title" },
-                  activeTab==="research"?"Ask any Indian legal question":activeTab==="deep"?"Deep Research — Full Legal Report":activeTab==="analyze"?"Analyze a judgment or document":activeTab==="draft"?"Draft legal documents":"Get concepts explained clearly"
-                ),
-                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + (activeTab==="deep" ? " — AI will research in 5 steps and generate a full structured report." : " — free AI models via OpenRouter.")),
-                React.createElement("div", { className:"quick-prompts" },
-                  QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
-                )
-              )
-            : React.createElement(React.Fragment, null,
-                cur.map((msg,i) =>
-                  React.createElement("div", { key:i, className:`msg-row${msg.role==="user"?" user":""}` },
-                    msg.role==="assistant" && React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
-                    React.createElement("div", { className:`msg-bubble${msg.role==="user"?" user":" ai"}` },
-                      msg.imgPreview && React.createElement("img", { src:msg.imgPreview, className:"msg-img", alt:"uploaded" }),
-                      msg.role==="user" ? React.createElement("p", null, msg.content) : fmt(msg.content)
-                    ),
-                    msg.role==="user" && React.createElement("div", { className:"msg-avatar user-av" }, "👤")
-                  )
-                ),
-                (loading || deepLoading) && React.createElement("div", { className:"loading-row" },
-                  React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
-                  deepLoading && deepProgress
-                    ? React.createElement("div", { className:"deep-progress" }, deepProgress)
-                    : React.createElement("div", { className:"typing-dots" },
-                        React.createElement("div", { className:"dot" }),
-                        React.createElement("div", { className:"dot" }),
-                        React.createElement("div", { className:"dot" })
-                      )
-                ),
-                React.createElement("div", { ref:bottomRef })
-              )
-        ),
-
-        // INPUT
-        React.createElement("div", { className:"input-area" },
-          React.createElement("div", { className:"api-key-row" },
-            React.createElement("span", { className:"api-key-label" }, "🔑 OpenRouter Key:"),
-            React.createElement("input", { className:"api-key-input", type:"password", placeholder:"sk-or-... (free from openrouter.ai)", value:apiKey, onChange:e=>saveApiKey(e.target.value) })
-          ),
-          React.createElement("div", { className:"api-hint" },
-            "Free key: ",
-            React.createElement("a", { href:"https://openrouter.ai/keys", target:"_blank" }, "openrouter.ai/keys")
-          ),
-          React.createElement("div", { className:"model-row" },
-            React.createElement("span", { className:"model-label" }, "🤖 Model:"),
-            React.createElement("select", { className:"model-select", value:model, onChange:e=>saveModel(e.target.value) },
-              FREE_MODELS.map(m => React.createElement("option", { key:m.id, value:m.id }, m.label))
-            )
-          ),
-          React.createElement("div", { className:"input-row" },
-            React.createElement("button", { className:`upload-btn${imageData?" has-img":""}`, onClick:()=>fileRef.current?.click(), title:"Upload image" }, "📎"),
-            React.createElement("textarea", {
-              ref:taRef, className:"input-box", rows:1,
-              placeholder: imageData?"Ask about this image or send to analyze...":activeTab==="research"?"e.g. What are the elements of Section 302 IPC?":activeTab==="analyze"?"Ask about the document above...":activeTab==="draft"?"e.g. Draft a legal notice for unpaid dues...":"e.g. Explain what is Mens Rea in simple words...",
-              value:input,
-              onChange:e=>{ setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; },
-              onKeyDown:handleKey
-            }),
-            React.createElement("button", { className:"send-btn", onClick:()=>activeTab==="deep"?sendDeepResearch():sendMessage(), disabled:(activeTab==="deep"?deepLoading:loading)||(!input.trim()&&!imageData) }, activeTab==="deep"&&deepLoading?"⏳":"▶")
-          )
-        ),
-
-        // SOURCES
-        React.createElement("div", { className:"sources-bar" },
-          React.createElement("span", { className:"sources-label" }, "Verify on"),
-          SOURCES.map(s => React.createElement("a", { key:s.name, href:s.url, target:"_blank", rel:"noopener noreferrer", className:"source-link" },
-            s.name, s.note && React.createElement("span", { className:"source-free" }, s.note)
-          ))
-        )
-      ),
-
-      React.createElement("input", { ref:fileRef, className:"hidden", type:"file", accept:"image/*", onChange:e=>{ const f=e.target.files?.[0]; if(f) processFile(f); e.target.value=""; } })
-    )
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
 </body>
 </html>
