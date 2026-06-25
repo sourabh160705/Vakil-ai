@@ -113,6 +113,10 @@
     .source-link:hover { color: #daa520; border-color: #b8860b44; }
     .source-free { font-size: 9px; background: #1a3a1a; color: #5a8a5a; padding: 1px 4px; border-radius: 3px; }
     .hidden { display: none; }
+    .deep-progress { background: #0f1923; border: 1px solid #b8860b44; color: #daa520; padding: 10px 16px; border-radius: 10px; font-size: 13px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    .msg-bubble .msg-heading-lg { font-family: "EB Garamond", serif; font-size: 17px; color: #c8a840; margin: 12px 0 6px; display: block; border-bottom: 1px solid #1e2a3a; padding-bottom: 4px; }
+    hr { border: none; border-top: 1px solid #1e2a3a; margin: 16px 0; }
   </style>
 </head>
 <body>
@@ -146,14 +150,16 @@ const FREE_MODELS = [
 ];
 
 const TABS = [
-  { id: "research", label: "⚖️ Research", icon: "⚖️", desc: "Ask any legal question" },
-  { id: "analyze",  label: "📄 Analyze",  icon: "📄", desc: "Paste judgment or document" },
-  { id: "draft",    label: "✍️ Draft",    icon: "✍️", desc: "Draft legal documents" },
-  { id: "explain",  label: "💡 Explain",  icon: "💡", desc: "Explain legal concepts" },
+  { id: "research",  label: "⚖️ Research",       icon: "⚖️", desc: "Ask any legal question" },
+  { id: "deep",      label: "🔍 Deep Research",   icon: "🔍", desc: "Detailed legal report with case laws" },
+  { id: "analyze",   label: "📄 Analyze",         icon: "📄", desc: "Paste judgment or document" },
+  { id: "draft",     label: "✍️ Draft",           icon: "✍️", desc: "Draft legal documents" },
+  { id: "explain",   label: "💡 Explain",         icon: "💡", desc: "Explain legal concepts" },
 ];
 
 const QUICK_PROMPTS = {
   research: ["What are the essential ingredients of Section 420 IPC?","Explain anticipatory bail under Section 438 CrPC","What are fundamental rights under Part III of the Constitution?","How is divorce filed under Hindu Marriage Act?"],
+  deep:     ["Deep research on Dowry Prohibition Act — all sections, cases, penalties","Comprehensive report on Right to Education Act 2009","Complete analysis of POCSO Act — provisions, punishment, landmark cases","Deep research on Cyber Crime laws in India — IT Act, IPC sections, recent cases"],
   analyze:  ["Summarize this judgment and identify key holdings","What ratio decidendi is established in this case?","List all sections cited in this order","Is this judgment still good law?"],
   draft:    ["Draft a legal notice for cheque bounce under Section 138 NI Act","Draft a plaint for recovery of money","Draft a reply to a legal notice","Draft a consumer complaint under Consumer Protection Act 2019"],
   explain:  ["Explain res judicata in simple terms","What is the difference between cognizable and non-cognizable offence?","Explain the concept of natural justice","What is a Writ of Mandamus?"],
@@ -177,7 +183,9 @@ function App() {
   const [activeTab, setActiveTab] = useState("research");
   const [apiKey,    setApiKey]    = useState(() => localStorage.getItem("vakil_or_key") || "");
   const [model,     setModel]     = useState(() => localStorage.getItem("vakil_or_model") || FREE_MODELS[0].id);
-  const [messages,  setMessages]  = useState({ research:[], analyze:[], draft:[], explain:[] });
+  const [messages,  setMessages]  = useState({ research:[], deep:[], analyze:[], draft:[], explain:[] });
+  const [deepLoading, setDeepLoading] = useState(false);
+  const [deepProgress, setDeepProgress] = useState("");
   const [input,     setInput]     = useState("");
   const [loading,   setLoading]   = useState(false);
   const [pastedDoc, setPastedDoc] = useState("");
@@ -208,6 +216,94 @@ function App() {
   }
 
   const cur = messages[activeTab];
+
+  async function sendDeepResearch(overrideInput) {
+    const userText = (overrideInput || input).trim();
+    if (!userText) return;
+    if (!apiKey.trim()) { alert("Please enter your OpenRouter API key.\nGet free key at: openrouter.ai"); return; }
+
+    pushHistory(userText, "deep");
+    const newMsg = { role: "user", content: userText };
+    const updated = [...messages["deep"], newMsg];
+    setMessages(prev => ({ ...prev, deep: updated }));
+    setInput(""); setDeepLoading(true);
+    if (taRef.current) taRef.current.style.height = "auto";
+
+    const steps = [
+      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
+
+STEP 1 — OVERVIEW:
+Write a clear introduction explaining this legal topic in India. Cover: what it is, which law governs it, when it was enacted, and why it matters. Write in structured paragraphs.`, label: "📖 Researching overview..." },
+      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
+
+STEP 2 — KEY SECTIONS & PROVISIONS:
+List ALL important sections of the relevant Act(s). For each section, write: section number, title, and what it says in simple language. Use format:
+**Section X — Title**
+[explanation]
+
+Cover at least 8-10 sections.`, label: "📋 Extracting key sections..." },
+      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
+
+STEP 3 — LANDMARK CASES:
+List 5-8 important Supreme Court or High Court judgments related to this topic. For each case write:
+**Case Name v. Case Name (Year)**
+- Court:
+- Key Holding:
+- Significance:
+
+Only mention cases you are confident about. Add ⚠️ Verify on SCC Online if uncertain.`, label: "⚖️ Finding landmark cases..." },
+      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
+
+STEP 4 — PENALTIES & REMEDIES:
+Explain all punishments, penalties, fines, imprisonment terms, and legal remedies available under this law. Also explain: who can file a complaint, which court has jurisdiction, limitation period, and bail provisions if applicable.`, label: "🔒 Analyzing penalties & remedies..." },
+      { prompt: `You are VakilAI Deep Research. The user wants: "${userText}"
+
+STEP 5 — STUDENT SUMMARY:
+Write a concise exam-ready summary covering:
+1. Key definitions
+2. Essential elements/ingredients
+3. Important sections (quick list)
+4. Top 3 landmark cases
+5. Common exam questions on this topic
+6. Recent amendments if any
+
+End with: ⚠️ Verify on: SCC Online / Manupatra / Indian Kanoon`, label: "📝 Creating student summary..." },
+    ];
+
+    let fullReport = "";
+
+    for (let i = 0; i < steps.length; i++) {
+      setDeepProgress(steps[i].label);
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": \`Bearer \${apiKey.trim()}\`, "HTTP-Referer": window.location.href, "X-Title": "VakilAI" },
+          body: JSON.stringify({ model, messages: [{ role: "system", content: "You are VakilAI, an expert Indian legal research assistant. Be thorough, accurate, and student-friendly." }, { role: "user", content: steps[i].prompt }], max_tokens: 1500, temperature: 0.2 }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        const part = data.choices?.[0]?.message?.content || "";
+        fullReport += (i === 0 ? "" : "
+
+---
+
+") + part;
+
+        // Update progressively
+        setMessages(prev => ({ ...prev, deep: [...updated, { role: "assistant", content: fullReport + (i < steps.length-1 ? "
+
+⏳ *Research in progress...*" : "") }] }));
+      } catch(e) {
+        fullReport += \`
+
+⚠️ Step \${i+1} error: \${e.message}\`;
+      }
+    }
+
+    setDeepLoading(false);
+    setDeepProgress("");
+    setMessages(prev => ({ ...prev, deep: [...updated, { role: "assistant", content: fullReport }] }));
+  }
 
   async function sendMessage(overrideInput) {
     const userText = (overrideInput || input).trim();
@@ -270,7 +366,7 @@ function App() {
     setLoading(false);
   }
 
-  function handleKey(e) { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function handleKey(e) { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); activeTab==="deep" ? sendDeepResearch() : sendMessage(); } }
 
   function fmt(text) {
     return text.split("\n").map((line, i) => {
@@ -356,9 +452,9 @@ function App() {
             ? React.createElement("div", { className:"empty-state" },
                 React.createElement("div", { className:"empty-icon" }, TABS.find(t=>t.id===activeTab)?.icon),
                 React.createElement("div", { className:"empty-title" },
-                  activeTab==="research"?"Ask any Indian legal question":activeTab==="analyze"?"Analyze a judgment or document":activeTab==="draft"?"Draft legal documents":"Get concepts explained clearly"
+                  activeTab==="research"?"Ask any Indian legal question":activeTab==="deep"?"Deep Research — Full Legal Report":activeTab==="analyze"?"Analyze a judgment or document":activeTab==="draft"?"Draft legal documents":"Get concepts explained clearly"
                 ),
-                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + " — free AI models via OpenRouter."),
+                React.createElement("div", { className:"empty-desc" }, TABS.find(t=>t.id===activeTab)?.desc + (activeTab==="deep" ? " — AI will research in 5 steps and generate a full structured report." : " — free AI models via OpenRouter.")),
                 React.createElement("div", { className:"quick-prompts" },
                   QUICK_PROMPTS[activeTab].map((p,i) => React.createElement("button", { key:i, className:"quick-btn", onClick:()=>sendMessage(p) }, p))
                 )
@@ -374,13 +470,15 @@ function App() {
                     msg.role==="user" && React.createElement("div", { className:"msg-avatar user-av" }, "👤")
                   )
                 ),
-                loading && React.createElement("div", { className:"loading-row" },
+                (loading || deepLoading) && React.createElement("div", { className:"loading-row" },
                   React.createElement("div", { className:"msg-avatar ai" }, "⚖️"),
-                  React.createElement("div", { className:"typing-dots" },
-                    React.createElement("div", { className:"dot" }),
-                    React.createElement("div", { className:"dot" }),
-                    React.createElement("div", { className:"dot" })
-                  )
+                  deepLoading && deepProgress
+                    ? React.createElement("div", { className:"deep-progress" }, deepProgress)
+                    : React.createElement("div", { className:"typing-dots" },
+                        React.createElement("div", { className:"dot" }),
+                        React.createElement("div", { className:"dot" }),
+                        React.createElement("div", { className:"dot" })
+                      )
                 ),
                 React.createElement("div", { ref:bottomRef })
               )
@@ -411,7 +509,7 @@ function App() {
               onChange:e=>{ setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; },
               onKeyDown:handleKey
             }),
-            React.createElement("button", { className:"send-btn", onClick:()=>sendMessage(), disabled:loading||(!input.trim()&&!imageData) }, "▶")
+            React.createElement("button", { className:"send-btn", onClick:()=>activeTab==="deep"?sendDeepResearch():sendMessage(), disabled:(activeTab==="deep"?deepLoading:loading)||(!input.trim()&&!imageData) }, activeTab==="deep"&&deepLoading?"⏳":"▶")
           )
         ),
 
